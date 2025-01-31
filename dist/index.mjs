@@ -13170,7 +13170,7 @@ var providers = [
     maxLength: 5e3,
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("1", from, to);
+      [from, to] = convertLangCodes("iso639-1", from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13181,7 +13181,7 @@ var providers = [
     maxLength: 1500,
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("1", from, to);
+      [from, to] = convertLangCodes("iso639-1", from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13204,7 +13204,7 @@ var providers = [
     maxLength: 3e3,
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("1", from, to);
+      [from, to] = convertLangCodes("iso639-1", from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13227,7 +13227,7 @@ var providers = [
     template: "https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}",
     url: function(text, from, to) {
       throw new Error("Yandex has been disabled due to robot detection");
-      [from, to] = convertLangCodes("1", from, to);
+      [from, to] = convertLangCodes("iso639-1", from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13237,7 +13237,7 @@ var providers = [
     maxLength: 2e3,
     template: "https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("2", from, to);
+      [from, to] = convertLangCodes("iso639-2", from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13247,7 +13247,7 @@ var providers = [
     maxLength: 1e3,
     template: "https://www.bing.com/translator?from=${from}&to=${to}&text=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("1", from, to);
+      [from, to] = convertLangCodes("iso639-1", from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {

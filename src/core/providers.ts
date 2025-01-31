@@ -114,7 +114,7 @@ export const providers: Provider[] = [
     template:
       'https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('1', from, to);
+      [from, to] = convertLangCodes('iso639-1', from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -125,7 +125,7 @@ export const providers: Provider[] = [
     maxLength: 1500,
     template: 'https://www.deepl.com/translator#${from}/${to}/${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('1', from, to);
+      [from, to] = convertLangCodes('iso639-1', from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -148,7 +148,7 @@ export const providers: Provider[] = [
     maxLength: 3000,
     template: 'https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('1', from, to);
+      [from, to] = convertLangCodes('iso639-1', from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -172,7 +172,7 @@ export const providers: Provider[] = [
       'https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
       throw new Error('Yandex has been disabled due to robot detection');
-      [from, to] = convertLangCodes('1', from, to);
+      [from, to] = convertLangCodes('iso639-1', from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -183,7 +183,7 @@ export const providers: Provider[] = [
     template:
       'https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('2', from, to);
+      [from, to] = convertLangCodes('iso639-2', from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -194,7 +194,7 @@ export const providers: Provider[] = [
     template:
       'https://www.bing.com/translator?from=${from}&to=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('1', from, to);
+      [from, to] = convertLangCodes('iso639-1', from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {

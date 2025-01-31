@@ -90,12 +90,6 @@ export async function translate(
     }
 
     return result;
-    // return $(selector)
-    //   .contents()
-    //   .toArray()
-    //   .filter((elem) => elem.type === 'text')
-    //   .map((elem) => elem.data)
-    //   .join('\n');
   } catch (err) {
     await page.close();
     if (!lifetime) {
