@@ -12732,14 +12732,15 @@ var require_country_language = __commonJS({
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
-  ProviderKey: () => ProviderKey,
-  fetchOptions: () => fetchOptions,
-  getLangCode: () => getLangCode,
-  getTextLangCode: () => getTextLangCode,
-  providers: () => providers,
+  destroy: () => destroy,
   translate: () => translate
 });
 module.exports = __toCommonJS(index_exports);
+
+// src/core/fetch.ts
+var cheerio = __toESM(require("cheerio"), 1);
+var import_puppeteer_extra = __toESM(require("puppeteer-extra"), 1);
+var import_puppeteer_extra_plugin_stealth = __toESM(require("puppeteer-extra-plugin-stealth"), 1);
 
 // node_modules/utils-js/dist/index.min.mjs
 function m(e2) {
@@ -13142,202 +13143,173 @@ function getLangCode(type, str) {
     throw new Error(`Language code not found: ${str}`);
   }
 }
-function getTextLangCode(type, str) {
-  const result = (0, import_franc.franc)(str);
-  if (result === "und") {
-    throw new Error(`${str} is to short.`);
-  }
-  return getLangCode(type, result);
-}
 
 // src/core/providers.ts
 function encode(str) {
   return encodeURIComponent(str);
 }
-function splitText(text, maxLength) {
-  const texts = [];
-  while (text.length > maxLength) {
-    const endIndex = text.lastIndexOf("\n", maxLength);
-    if (endIndex === -1) {
-      throw new Error("Too large text without whitespace");
-    }
-    const part = text.substring(0, endIndex + 1);
-    texts.push({
-      originalText: part,
-      encodedText: encode(part)
-    });
-    text = text.substring(endIndex + 1);
-  }
-  if (text.length > 0) {
-    texts.push({
-      originalText: text,
-      encodedText: encode(text)
-    });
-  }
-  return texts;
-}
 function convertLangCodes(type, ...args) {
   return args.map((str) => getLangCode(type, str));
 }
-function createQueues(template, text, from, to, maxLength = Number.MAX_SAFE_INTEGER) {
-  return splitText(text, maxLength).map(({ originalText, encodedText }) => {
-    const url = ht(template, { text: encodedText, from, to });
-    return { url, text: originalText, from, to };
+function createUrl(template, text, from, to) {
+  return ht(template, {
+    text: encode(text),
+    from,
+    to
   });
 }
-var ProviderKey = /* @__PURE__ */ ((ProviderKey2) => {
-  ProviderKey2[ProviderKey2["google"] = 0] = "google";
-  ProviderKey2[ProviderKey2["deepl"] = 1] = "deepl";
-  ProviderKey2[ProviderKey2["papago"] = 2] = "papago";
-  ProviderKey2[ProviderKey2["yandex"] = 3] = "yandex";
-  ProviderKey2[ProviderKey2["reverso"] = 4] = "reverso";
-  ProviderKey2[ProviderKey2["bing"] = 5] = "bing";
-  return ProviderKey2;
-})(ProviderKey || {});
-var providers = {
-  google: {
+var providers = [
+  {
+    name: "google",
     selector: "span.ryNqvb",
     maxLength: 5e3,
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
-    queues: function(text, from, to) {
+    url: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createQueues(this.template, text, from, to, this.maxLength);
+      return createUrl(this.template, text, from, to);
     }
   },
-  deepl: {
+  {
+    name: "deepl",
     selector: "div[aria-labelledby='translation-target-heading'] p span",
     maxLength: 1500,
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
-    queues: function(text, from, to) {
+    url: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createQueues(this.template, text, from, to, this.maxLength);
+      return createUrl(this.template, text, from, to);
     }
   },
-  papago: {
+  {
+    name: "papago",
     selector: "#txtTarget span",
     maxLength: 3e3,
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
-    queues: function(text, from, to) {
-      return createQueues(this.template, text, from, to, this.maxLength);
+    url: function(text, from, to) {
+      [from, to] = convertLangCodes("1", from, to);
+      return createUrl(this.template, text, from, to);
     }
   },
-  yandex: {
+  {
+    name: "yandex",
     selector: "span.EzKURWReUAB5oZgtQNkl",
     maxLength: 1e4,
     template: "https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}",
-    queues: function(text, from, to) {
+    url: function(text, from, to) {
       throw new Error("Yandex has been disabled due to robot detection");
       [from, to] = convertLangCodes("1", from, to);
-      return createQueues(this.template, text, from, to, this.maxLength);
-    },
-    prepare: async function(page) {
-      try {
-        await page.waitForSelector(".CheckboxCaptcha-Button", {
-          visible: true,
-          timeout: 1e3 * 10
-        });
-        await page.click(".CheckboxCaptcha-Button");
-        return true;
-      } catch (err) {
-        return false;
-      }
+      return createUrl(this.template, text, from, to);
     }
   },
-  reverso: {
+  {
+    name: "reverso",
     selector: ".sentence-wrapper_target span",
     maxLength: 2e3,
     template: "https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}",
-    queues: function(text, from, to) {
+    url: function(text, from, to) {
       [from, to] = convertLangCodes("2", from, to);
-      return createQueues(this.template, text, from, to, this.maxLength);
+      return createUrl(this.template, text, from, to);
     }
   },
-  bing: {
-    // selector: '#tta_output_ta, tta_output_ta_gdf, tta_output_ta_gdm',
+  {
+    name: "bing",
     selector: "#tta_output_ta",
     maxLength: 1e3,
     template: "https://www.bing.com/translator?from=${from}&to=${to}&text=${text}",
-    queues: function(text, from, to) {
+    url: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createQueues(this.template, text, from, to, this.maxLength);
+      return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
       try {
-        const element = await page.$(this.selector);
-        const content = await page.evaluate(
-          (elem) => elem?.textContent,
-          element
-        );
-        return typeof content === "string" && content.trim() !== "..." && content.trim() !== "";
+        let i = 0;
+        while (i < 10) {
+          const element = await page.$(this.selector);
+          const content = await page.evaluate(
+            (elem) => elem?.textContent,
+            element
+          );
+          if (typeof content === "string" && !/^\s*\.*\s*$/.test(content)) {
+            break;
+          }
+          await _e(256);
+          i++;
+        }
       } catch (err) {
-        return false;
       }
     }
   }
-};
+];
 
 // src/core/fetch.ts
-var cheerio = __toESM(require("cheerio"), 1);
-var import_puppeteer_extra = __toESM(require("puppeteer-extra"), 1);
-var import_puppeteer_extra_plugin_stealth = __toESM(require("puppeteer-extra-plugin-stealth"), 1);
 import_puppeteer_extra.default.use((0, import_puppeteer_extra_plugin_stealth.default)());
-var fetchOptions = {
-  // userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-  cacheDir: ".puppeteer",
-  waitTimeout: 1e3 * 10
-};
-async function getPageContent(browser, url, provider) {
-  const { selector, prepare } = provider;
-  const page = await browser.newPage();
-  await page.goto(url, {
-    waitUntil: "load"
-  });
-  if (prepare) {
-    while (!await prepare.apply(provider, [page])) {
-      await _e(128);
-    }
+var browser = null;
+var timer = null;
+function setTimer(time) {
+  if (timer) {
+    clearTimeout(timer);
   }
-  await page.waitForSelector(selector, {
-    visible: true,
-    timeout: fetchOptions.waitTimeout
-  });
-  const content = await page.content();
-  const $ = cheerio.load(content);
-  const elements = $(selector).contents().toArray();
-  return elements.filter((elem) => elem.type === "text").map((elem) => elem.data).join("");
+  timer = setTimeout(destroy, time);
 }
-async function translate(provider, from, to, text) {
-  const p = providers[provider];
+async function destroy() {
+  if (timer) {
+    clearTimeout(timer);
+  }
+  if (browser) {
+    const b = browser;
+    browser = null;
+    await b.close();
+  }
+}
+async function translate(provider, from, to, text, lifetime = 0) {
+  const p = providers.find((item) => item.name === provider);
   if (!p) {
     throw new Error(`Provider not found: ${provider}`);
   }
-  const queues = p.queues.apply(p, [text, from, to]);
-  if (queues.length === 0) {
-    return "";
+  if (text.length > p.maxLength) {
+    throw new Error(`Too many characters: ${text.length} > ${p.maxLength}`);
   }
-  const browser = await import_puppeteer_extra.default.launch({
-    headless: true,
-    userDataDir: fetchOptions.cacheDir
-    // executablePath: "google-chrome-stable",
-  });
-  let result = "";
-  for (const queue of queues) {
-    try {
-      result += await getPageContent(browser, queue.url, p);
-    } catch (err) {
-      await browser.close();
-      throw err;
+  const { selector, prepare } = p;
+  const url = p.url.apply(p, [text, from, to]);
+  if (!browser) {
+    browser = await import_puppeteer_extra.default.launch({
+      headless: true,
+      userDataDir: ".puppeteer"
+      // executablePath: "google-chrome-stable",
+    });
+  }
+  if (lifetime) {
+    setTimer(lifetime);
+  }
+  const page = await browser.newPage();
+  try {
+    await page.goto(url, {
+      waitUntil: "load"
+    });
+    if (prepare) {
+      await prepare.apply(p, [page]);
     }
+    await page.waitForSelector(selector, {
+      visible: true,
+      timeout: 1e3 * 10
+    });
+    const content = await page.content();
+    const $ = cheerio.load(content);
+    const elements = $(selector).contents().toArray();
+    await page.close();
+    if (!lifetime) {
+      await destroy();
+    }
+    return elements.filter((elem) => elem.type === "text").map((elem) => elem.data).join("");
+  } catch (err) {
+    await page.close();
+    if (!lifetime) {
+      await destroy();
+    }
+    throw err;
   }
-  await browser.close();
-  return result;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ProviderKey,
-  fetchOptions,
-  getLangCode,
-  getTextLangCode,
-  providers,
+  destroy,
   translate
 });

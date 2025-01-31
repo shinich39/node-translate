@@ -4,7 +4,7 @@ import { describe, test, it } from 'node:test';
 import assert from 'node:assert';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { translate } from '../dist/index.mjs';
+import { destroy, translate } from '../dist/index.min.mjs';
 import fs from 'node:fs';
 const __path = path.relative(process.cwd(), fileURLToPath(import.meta.url));
 const eq = (a, b, msg) =>
@@ -32,11 +32,15 @@ The blue bird had blue eyes.
 
     for (const p of providers) {
       try {
+        console.time(p);
         const res = await translate(p, 'en', 'ja', text);
+        console.timeEnd(p);
         console.log(`${p}: ${res}`);
       } catch (err) {
         console.log(`${p}: ${err.message}`);
       }
     }
+
+    await destroy();
   });
 });

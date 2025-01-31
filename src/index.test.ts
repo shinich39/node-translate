@@ -4,7 +4,7 @@ import { describe, test, it } from 'node:test';
 import assert from 'node:assert';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { translate } from './index';
+import { destroy, translate } from './index';
 import fs from 'node:fs';
 const __path = path.relative(process.cwd(), fileURLToPath(import.meta.url));
 const eq = (a, b, msg) =>
@@ -40,5 +40,7 @@ The blue bird had blue eyes.
         console.log(`${p}: ${err.message}`);
       }
     }
+
+    await destroy();
   });
 });

@@ -4,115 +4,99 @@ import * as cheerio from 'cheerio';
 import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Provider, ProviderName, providers, Queue } from './providers';
-import { wait } from 'utils-js';
+import { providers } from './providers';
 
 // add stealth plugin and use defaults (all evasion techniques)
 puppeteer.use(StealthPlugin());
 
-export const fetchOptions = {
-  // userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-  cacheDir: '.puppeteer',
-  waitTimeout: 1000 * 10,
-};
+let browser: null | Browser = null,
+  timer: null | ReturnType<typeof setTimeout> = null;
 
-// Deprecated
-// async function scrollPage(page: Page, delay: number) {
-//   while (true) {
-//     const previousHeight = await page.evaluate('document.body.scrollHeight');
-//     await page.evaluate(() => {
-//       window.scrollTo(0, document.body.scrollHeight);
-//     });
-//     try {
-//       await page.waitForFunction(
-//         `document.body.scrollHeight > ${previousHeight}`,
-//         { timeout: fetchOptions.scrollTimeout }
-//       );
-//     } catch {
-//       break;
-//     }
-//     await new Promise((resolve) => setTimeout(resolve, delay));
-//   }
-// }
-
-async function getPageContent(
-  browser: Browser,
-  url: string,
-  provider: Provider
-) {
-  const { selector, prepare } = provider;
-
-  const page = await browser.newPage();
-
-  // Deprecated: blocked by robot detection
-  // await page.setRequestInterception(true);
-  // page.on('request', (request) => {
-  //   if (request.resourceType() === 'image') {
-  //     request.abort();
-  //   } else {
-  //     request.continue();
-  //   }
-  // });
-
-  await page.goto(url, {
-    waitUntil: 'load',
-  });
-
-  if (prepare) {
-    while (!(await prepare.apply(provider, [page]))) {
-      await wait(128);
-    }
+function setTimer(time: number) {
+  if (timer) {
+    clearTimeout(timer);
   }
 
-  await page.waitForSelector(selector, {
-    visible: true,
-    timeout: fetchOptions.waitTimeout,
-  });
+  timer = setTimeout(destroy, time);
+}
 
-  const content = await page.content();
-  const $ = cheerio.load(content);
-  const elements = $(selector).contents().toArray();
+export async function destroy() {
+  if (timer) {
+    clearTimeout(timer);
+  }
 
-  return elements
-    .filter((elem) => elem.type === 'text')
-    .map((elem) => elem.data)
-    .join('');
+  if (browser) {
+    const b = browser;
+    browser = null;
+    await b.close();
+  }
 }
 
 export async function translate(
-  provider: ProviderName,
+  provider: string,
   from: string,
   to: string,
-  text: string
+  text: string,
+  lifetime: number = 0
 ) {
-  const p = providers[provider];
+  const p = providers.find((item) => item.name === provider);
   if (!p) {
     throw new Error(`Provider not found: ${provider}`);
   }
 
-  const queues = p.queues.apply(p, [text, from, to]);
-  if (queues.length === 0) {
-    return '';
+  if (text.length > p.maxLength) {
+    throw new Error(`Too many characters: ${text.length} > ${p.maxLength}`);
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    userDataDir: fetchOptions.cacheDir,
-    // executablePath: "google-chrome-stable",
-  });
+  const { selector, prepare } = p;
+  const url = p.url.apply(p, [text, from, to]);
 
-  let result = '';
-  for (const queue of queues) {
-    try {
-      result += await getPageContent(browser, queue.url, p);
-    } catch (err) {
-      // console.error(err);
-      await browser.close();
-      throw err;
+  if (!browser) {
+    browser = await puppeteer.launch({
+      headless: true,
+      userDataDir: '.puppeteer',
+      // executablePath: "google-chrome-stable",
+    });
+  }
+
+  if (lifetime) {
+    setTimer(lifetime);
+  }
+
+  const page = await browser.newPage();
+
+  try {
+    await page.goto(url, {
+      waitUntil: 'load',
+    });
+
+    if (prepare) {
+      await prepare.apply(p, [page]);
     }
+
+    await page.waitForSelector(selector, {
+      visible: true,
+      timeout: 1000 * 10,
+    });
+
+    const content = await page.content();
+    const $ = cheerio.load(content);
+    const elements = $(selector).contents().toArray();
+
+    await page.close();
+    if (!lifetime) {
+      await destroy();
+    }
+
+    return elements
+      .filter((elem) => elem.type === 'text')
+      .map((elem) => elem.data)
+      .join('');
+  } catch (err) {
+    await page.close();
+    if (!lifetime) {
+      await destroy();
+    }
+    throw err;
   }
-
-  await browser.close();
-
-  return result;
 }
