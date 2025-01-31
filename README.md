@@ -27,7 +27,7 @@ const providers = [
   'papago',
   'yandex', // disabled
   'reverso',
-  'bing',
+  'bing', // Linebreak not supported
 ];
 
 for (const p of providers) {

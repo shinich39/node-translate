@@ -3,6 +3,7 @@
 import { parseTemplate, wait } from 'utils-js';
 import { getLangCode } from './language';
 import { Page } from 'puppeteer';
+import * as cheerio from 'cheerio';
 
 // function splitText(
 //   text: string,
@@ -56,6 +57,9 @@ import { Page } from 'puppeteer';
 //   to: string;
 // }
 
+const DELAY = 128;
+const TIMEOUT = 1000 * 10;
+
 function encode(str: string) {
   return encodeURIComponent(str);
 }
@@ -72,18 +76,39 @@ function createUrl(template: string, text: string, from: string, to: string) {
   });
 }
 
+async function getContent(page: Page, selector: string) {
+  const element = await page.$(selector);
+  if (!element) {
+    return;
+  }
+
+  const content = await page.evaluate((elem) => elem?.textContent, element);
+
+  if (!content || content.trim() === '') {
+    return;
+  }
+
+  return content;
+}
+
+async function getCheerioContent(page: Page, selector: string) {
+  const $ = cheerio.load(await page.content());
+  return $(selector).find('br').replaceWith('\n').end().text();
+}
+
 export interface Provider {
   name: string;
   selector: string;
   maxLength: number;
   template: string;
   url: (text: string, from: string, to: string) => string;
-  prepare?: (page: Page) => Promise<void>;
+  prepare?: (page: Page) => Promise<string>;
 }
 
 export const providers: Provider[] = [
   {
     name: 'google',
+    // selector: "span.HwtZe",
     selector: 'span.ryNqvb',
     maxLength: 5000,
     template:
@@ -95,22 +120,48 @@ export const providers: Provider[] = [
   },
   {
     name: 'deepl',
-    selector: "div[aria-labelledby='translation-target-heading'] p span",
+    selector: "div[aria-labelledby='translation-target-heading']",
+    // selector: "div[aria-labelledby='translation-target-heading'] p span",
     maxLength: 1500,
     template: 'https://www.deepl.com/translator#${from}/${to}/${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('1', from, to);
       return createUrl(this.template, text, from, to);
     },
+    prepare: async function (page: Page) {
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content) {
+          return getCheerioContent(page, this.selector);
+        }
+        await wait(DELAY);
+        i += DELAY;
+      }
+      throw new Error('Content not found');
+    },
   },
   {
     name: 'papago',
-    selector: '#txtTarget span',
+    selector: '#txtTarget',
+    // selector: '#txtTarget span',
     maxLength: 3000,
     template: 'https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('1', from, to);
       return createUrl(this.template, text, from, to);
+    },
+    prepare: async function (page: Page) {
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content) {
+          return getCheerioContent(page, this.selector);
+        }
+        await wait(DELAY);
+        i += DELAY;
+      }
+      throw new Error('Content not found');
     },
   },
   {
@@ -147,26 +198,16 @@ export const providers: Provider[] = [
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
-      try {
-        let i = 0;
-        while (i < 10) {
-          const element = await page.$(this.selector);
-          const content = await page.evaluate(
-            (elem) => elem?.textContent,
-            element
-          );
-
-          if (typeof content === 'string' && !/^\s*\.*\s*$/.test(content)) {
-            break;
-          }
-
-          await wait(256);
-
-          i++;
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content && !/^\.+$/.test(content.trim())) {
+          return content;
         }
-      } catch (err) {
-        // console.error(err);
+        await wait(DELAY);
+        i += DELAY;
       }
+      throw new Error('Content not found');
     },
   },
 ];

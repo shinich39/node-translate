@@ -12738,7 +12738,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/core/fetch.ts
-var cheerio = __toESM(require("cheerio"), 1);
+var cheerio2 = __toESM(require("cheerio"), 1);
 var import_puppeteer_extra = __toESM(require("puppeteer-extra"), 1);
 var import_puppeteer_extra_plugin_stealth = __toESM(require("puppeteer-extra-plugin-stealth"), 1);
 
@@ -13145,6 +13145,9 @@ function getLangCode(type, str) {
 }
 
 // src/core/providers.ts
+var cheerio = __toESM(require("cheerio"), 1);
+var DELAY = 128;
+var TIMEOUT = 1e3 * 10;
 function encode(str) {
   return encodeURIComponent(str);
 }
@@ -13158,9 +13161,25 @@ function createUrl(template, text, from, to) {
     to
   });
 }
+async function getContent(page, selector) {
+  const element = await page.$(selector);
+  if (!element) {
+    return;
+  }
+  const content = await page.evaluate((elem) => elem?.textContent, element);
+  if (!content || content.trim() === "") {
+    return;
+  }
+  return content;
+}
+async function getCheerioContent(page, selector) {
+  const $ = cheerio.load(await page.content());
+  return $(selector).find("br").replaceWith("\n").end().text();
+}
 var providers = [
   {
     name: "google",
+    // selector: "span.HwtZe",
     selector: "span.ryNqvb",
     maxLength: 5e3,
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
@@ -13171,22 +13190,48 @@ var providers = [
   },
   {
     name: "deepl",
-    selector: "div[aria-labelledby='translation-target-heading'] p span",
+    selector: "div[aria-labelledby='translation-target-heading']",
+    // selector: "div[aria-labelledby='translation-target-heading'] p span",
     maxLength: 1500,
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
       return createUrl(this.template, text, from, to);
+    },
+    prepare: async function(page) {
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content) {
+          return getCheerioContent(page, this.selector);
+        }
+        await _e(DELAY);
+        i += DELAY;
+      }
+      throw new Error("Content not found");
     }
   },
   {
     name: "papago",
-    selector: "#txtTarget span",
+    selector: "#txtTarget",
+    // selector: '#txtTarget span',
     maxLength: 3e3,
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
       return createUrl(this.template, text, from, to);
+    },
+    prepare: async function(page) {
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content) {
+          return getCheerioContent(page, this.selector);
+        }
+        await _e(DELAY);
+        i += DELAY;
+      }
+      throw new Error("Content not found");
     }
   },
   {
@@ -13220,22 +13265,16 @@ var providers = [
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
-      try {
-        let i = 0;
-        while (i < 10) {
-          const element = await page.$(this.selector);
-          const content = await page.evaluate(
-            (elem) => elem?.textContent,
-            element
-          );
-          if (typeof content === "string" && !/^\s*\.*\s*$/.test(content)) {
-            break;
-          }
-          await _e(256);
-          i++;
+      let i = 0;
+      while (i < TIMEOUT) {
+        const content = await getContent(page, this.selector);
+        if (content && !/^\.+$/.test(content.trim())) {
+          return content;
         }
-      } catch (err) {
+        await _e(DELAY);
+        i += DELAY;
       }
+      throw new Error("Content not found");
     }
   }
 ];
@@ -13285,21 +13324,23 @@ async function translate(provider, from, to, text, lifetime = 0) {
     await page.goto(url, {
       waitUntil: "load"
     });
+    let result;
     if (prepare) {
-      await prepare.apply(p, [page]);
+      result = await prepare.apply(p, [page]);
+    } else {
+      await page.waitForSelector(selector, {
+        visible: true,
+        timeout: 1e3 * 10
+      });
+      const content = await page.content();
+      const $ = cheerio2.load(content);
+      result = $(selector).find("br").replaceWith("\n").end().text();
     }
-    await page.waitForSelector(selector, {
-      visible: true,
-      timeout: 1e3 * 10
-    });
-    const content = await page.content();
-    const $ = cheerio.load(content);
-    const elements = $(selector).contents().toArray();
     await page.close();
     if (!lifetime) {
       await destroy();
     }
-    return elements.filter((elem) => elem.type === "text").map((elem) => elem.data).join("");
+    return result;
   } catch (err) {
     await page.close();
     if (!lifetime) {

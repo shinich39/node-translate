@@ -5,7 +5,7 @@ export interface Provider {
     maxLength: number;
     template: string;
     url: (text: string, from: string, to: string) => string;
-    prepare?: (page: Page) => Promise<void>;
+    prepare?: (page: Page) => Promise<string>;
 }
 export declare const providers: Provider[];
 //# sourceMappingURL=providers.d.ts.map

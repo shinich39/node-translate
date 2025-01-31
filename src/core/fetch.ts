@@ -70,28 +70,32 @@ export async function translate(
       waitUntil: 'load',
     });
 
+    let result: string;
     if (prepare) {
-      await prepare.apply(p, [page]);
+      result = await prepare.apply(p, [page]);
+    } else {
+      await page.waitForSelector(selector, {
+        visible: true,
+        timeout: 1000 * 10,
+      });
+
+      const content = await page.content();
+      const $ = cheerio.load(content);
+      result = $(selector).find('br').replaceWith('\n').end().text();
     }
-
-    await page.waitForSelector(selector, {
-      visible: true,
-      timeout: 1000 * 10,
-    });
-
-    const content = await page.content();
-    const $ = cheerio.load(content);
-    const elements = $(selector).contents().toArray();
 
     await page.close();
     if (!lifetime) {
       await destroy();
     }
 
-    return elements
-      .filter((elem) => elem.type === 'text')
-      .map((elem) => elem.data)
-      .join('');
+    return result;
+    // return $(selector)
+    //   .contents()
+    //   .toArray()
+    //   .filter((elem) => elem.type === 'text')
+    //   .map((elem) => elem.data)
+    //   .join('\n');
   } catch (err) {
     await page.close();
     if (!lifetime) {
