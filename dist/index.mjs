@@ -13288,7 +13288,7 @@ async function getPageContent(browser, url, provider) {
   const elements = $(selector).contents().toArray();
   return elements.filter((elem) => elem.type === "text").map((elem) => elem.data).join("");
 }
-async function translate(provider, from, to, text, cb) {
+async function translate(provider, from, to, text) {
   const p = providers[provider];
   if (!p) {
     throw new Error(`Provider not found: ${provider}`);
@@ -13302,20 +13302,14 @@ async function translate(provider, from, to, text, cb) {
     userDataDir: fetchOptions.cacheDir
     // executablePath: "google-chrome-stable",
   });
-  let result = "", index = 0;
+  let result = "";
   for (const queue of queues) {
     try {
-      const translatedText = await getPageContent(browser, queue.url, p);
-      result += translatedText;
-      if (cb) {
-        cb(null, queue.text, translatedText, index, queues);
-      }
+      result += await getPageContent(browser, queue.url, p);
     } catch (err) {
-      if (cb) {
-        cb(err, queue.text, "", index, queues);
-      }
+      await browser.close();
+      throw err;
     }
-    index++;
   }
   await browser.close();
   return result;

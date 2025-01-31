@@ -83,14 +83,7 @@ export async function translate(
   provider: ProviderName,
   from: string,
   to: string,
-  text: string,
-  cb?: (
-    error: unknown | null,
-    originalText: string,
-    translatedText: string,
-    index: number,
-    array: Queue[]
-  ) => void
+  text: string
 ) {
   const p = providers[provider];
   if (!p) {
@@ -108,22 +101,15 @@ export async function translate(
     // executablePath: "google-chrome-stable",
   });
 
-  let result = '',
-    index = 0;
-
+  let result = '';
   for (const queue of queues) {
     try {
-      const translatedText = await getPageContent(browser, queue.url, p);
-      result += translatedText;
-      if (cb) {
-        cb(null, queue.text, translatedText, index, queues);
-      }
-    } catch (err: unknown) {
-      if (cb) {
-        cb(err, queue.text, '', index, queues);
-      }
+      result += await getPageContent(browser, queue.url, p);
+    } catch (err) {
+      // console.error(err);
+      await browser.close();
+      throw err;
     }
-    index++;
   }
 
   await browser.close();
