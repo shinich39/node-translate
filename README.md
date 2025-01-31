@@ -12,8 +12,6 @@ npm install github:shinich39/node-translate
 
 ### Usage
 
-- node
-
 ```js
 import { translate } from 'node-translate';
 
