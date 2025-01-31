@@ -12,9 +12,14 @@ const eq = function (a, b, msg) {
 
 describe('src/core/providers.ts', () => {
   test('providers', () => {
-    const res = providers.google.urls('test', 'ko', 'ja');
+    const res = providers.google.queues('test', 'ko', 'ja');
     eq(res, [
-      'https://translate.google.com/?sl=ko&tl=ja&text=test&op=translate',
+      {
+        from: 'ko',
+        text: 'test',
+        to: 'ja',
+        url: 'https://translate.google.com/?sl=ko&tl=ja&text=test&op=translate',
+      },
     ]);
   });
 });

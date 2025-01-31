@@ -8,11 +8,17 @@ export declare enum ProviderKey {
     bing = 5
 }
 export type ProviderName = keyof typeof ProviderKey;
+export interface Queue {
+    url: string;
+    text: string;
+    from: string;
+    to: string;
+}
 export interface Provider {
     selector: string;
     maxLength: number;
     template: string;
-    urls: (text: string, from: string, to: string) => string[];
+    queues: (text: string, from: string, to: string) => Queue[];
     prepare?: (page: Page) => Promise<boolean>;
 }
 export declare const providers: Record<ProviderName, Provider>;

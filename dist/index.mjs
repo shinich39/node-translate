@@ -13124,6 +13124,13 @@ function getLangCode(type, str) {
     throw new Error(`Language code not found: ${str}`);
   }
 }
+function getTextLangCode(type, str) {
+  const result = franc(str);
+  if (result === "und") {
+    throw new Error(`${str} is to short.`);
+  }
+  return getLangCode(type, result);
+}
 
 // src/core/providers.ts
 function encode(str) {
@@ -13137,21 +13144,28 @@ function splitText(text, maxLength) {
       throw new Error("Too large text without whitespace");
     }
     const part = text.substring(0, endIndex + 1);
-    texts.push(encode(part));
+    texts.push({
+      originalText: part,
+      encodedText: encode(part)
+    });
     text = text.substring(endIndex + 1);
   }
   if (text.length > 0) {
-    texts.push(encode(text));
+    texts.push({
+      originalText: text,
+      encodedText: encode(text)
+    });
   }
   return texts;
 }
 function convertLangCodes(type, ...args) {
   return args.map((str) => getLangCode(type, str));
 }
-function createUrls(template, text, from, to, maxLength = Number.MAX_SAFE_INTEGER) {
-  return splitText(text, maxLength).map(
-    (text2) => ht(template, { text: text2, from, to })
-  );
+function createQueues(template, text, from, to, maxLength = Number.MAX_SAFE_INTEGER) {
+  return splitText(text, maxLength).map(({ originalText, encodedText }) => {
+    const url = ht(template, { text: encodedText, from, to });
+    return { url, text: originalText, from, to };
+  });
 }
 var ProviderKey = /* @__PURE__ */ ((ProviderKey2) => {
   ProviderKey2[ProviderKey2["google"] = 0] = "google";
@@ -13167,36 +13181,36 @@ var providers = {
     selector: "span.ryNqvb",
     maxLength: 5e3,
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
-    urls: function(text, from, to) {
+    queues: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     }
   },
   deepl: {
     selector: "div[aria-labelledby='translation-target-heading'] p span",
     maxLength: 1500,
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
-    urls: function(text, from, to) {
+    queues: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     }
   },
   papago: {
     selector: "#txtTarget span",
     maxLength: 3e3,
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
-    urls: function(text, from, to) {
-      return createUrls(this.template, text, from, to, this.maxLength);
+    queues: function(text, from, to) {
+      return createQueues(this.template, text, from, to, this.maxLength);
     }
   },
   yandex: {
     selector: "span.EzKURWReUAB5oZgtQNkl",
     maxLength: 1e4,
     template: "https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}",
-    urls: function(text, from, to) {
+    queues: function(text, from, to) {
       throw new Error("Yandex has been disabled due to robot detection");
       [from, to] = convertLangCodes("1", from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
     prepare: async function(page) {
       try {
@@ -13215,9 +13229,9 @@ var providers = {
     selector: ".sentence-wrapper_target span",
     maxLength: 2e3,
     template: "https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}",
-    urls: function(text, from, to) {
+    queues: function(text, from, to) {
       [from, to] = convertLangCodes("2", from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     }
   },
   bing: {
@@ -13225,9 +13239,9 @@ var providers = {
     selector: "#tta_output_ta",
     maxLength: 1e3,
     template: "https://www.bing.com/translator?from=${from}&to=${to}&text=${text}",
-    urls: function(text, from, to) {
+    queues: function(text, from, to) {
       [from, to] = convertLangCodes("1", from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
     prepare: async function(page) {
       try {
@@ -13274,40 +13288,43 @@ async function getPageContent(browser, url, provider) {
   const elements = $(selector).contents().toArray();
   return elements.filter((elem) => elem.type === "text").map((elem) => elem.data).join("");
 }
-async function getContent(urls, provider) {
+async function translate(provider, from, to, text, cb) {
+  const p = providers[provider];
+  if (!p) {
+    throw new Error(`Provider not found: ${provider}`);
+  }
+  const queues = p.queues.apply(p, [text, from, to]);
+  if (queues.length === 0) {
+    return "";
+  }
   const browser = await puppeteer.launch({
     headless: true,
     userDataDir: fetchOptions.cacheDir
     // executablePath: "google-chrome-stable",
   });
-  let result = "";
-  for (const url of urls) {
+  let result = "", index = 0;
+  for (const queue of queues) {
     try {
-      result += await getPageContent(browser, url, provider);
+      const translatedText = await getPageContent(browser, queue.url, p);
+      result += translatedText;
+      if (cb) {
+        cb(null, queue.text, translatedText, index, queues);
+      }
     } catch (err) {
-      console.error(err);
+      if (cb) {
+        cb(err, queue.text, "", index, queues);
+      }
     }
+    index++;
   }
   await browser.close();
   return result;
 }
-
-// src/index.ts
-var translateOptions = fetchOptions;
-async function translate(provider, from, to, text) {
-  const p = providers[provider];
-  if (!p) {
-    throw new Error(`Provider not found: ${provider}`);
-  }
-  const urls = p.urls.apply(p, [text, from, to]);
-  if (urls.length === 0) {
-    return "";
-  }
-  return await getContent(urls, p);
-}
 export {
   ProviderKey,
+  fetchOptions,
+  getLangCode,
+  getTextLangCode,
   providers,
-  translate,
-  translateOptions
+  translate
 };

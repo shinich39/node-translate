@@ -8,7 +8,13 @@ function encode(str: string) {
   return encodeURIComponent(str);
 }
 
-function splitText(text: string, maxLength: number): string[] {
+function splitText(
+  text: string,
+  maxLength: number
+): {
+  originalText: string;
+  encodedText: string;
+}[] {
   const texts = [];
   while (text.length > maxLength) {
     const endIndex = text.lastIndexOf('\n', maxLength);
@@ -17,12 +23,18 @@ function splitText(text: string, maxLength: number): string[] {
     }
 
     const part = text.substring(0, endIndex + 1);
-    texts.push(encode(part));
+    texts.push({
+      originalText: part,
+      encodedText: encode(part),
+    });
     text = text.substring(endIndex + 1);
   }
 
   if (text.length > 0) {
-    texts.push(encode(text));
+    texts.push({
+      originalText: text,
+      encodedText: encode(text),
+    });
   }
 
   return texts;
@@ -32,16 +44,17 @@ function convertLangCodes(type: string, ...args: string[]) {
   return args.map((str) => getLangCode(type, str));
 }
 
-function createUrls(
+function createQueues(
   template: string,
   text: string,
   from: string,
   to: string,
   maxLength: number = Number.MAX_SAFE_INTEGER
-) {
-  return splitText(text, maxLength).map((text) =>
-    parseTemplate(template, { text, from, to })
-  );
+): Queue[] {
+  return splitText(text, maxLength).map(({ originalText, encodedText }) => {
+    const url = parseTemplate(template, { text: encodedText, from, to });
+    return { url, text: originalText, from, to };
+  });
 }
 
 export enum ProviderKey {
@@ -55,11 +68,18 @@ export enum ProviderKey {
 
 export type ProviderName = keyof typeof ProviderKey;
 
+export interface Queue {
+  url: string;
+  text: string;
+  from: string;
+  to: string;
+}
+
 export interface Provider {
   selector: string;
   maxLength: number;
   template: string;
-  urls: (text: string, from: string, to: string) => string[];
+  queues: (text: string, from: string, to: string) => Queue[];
   prepare?: (page: Page) => Promise<boolean>;
 }
 
@@ -69,26 +89,26 @@ export const providers: Record<ProviderName, Provider> = {
     maxLength: 5000,
     template:
       'https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate',
-    urls: function (text: string, from: string, to: string) {
+    queues: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('1', from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
   },
   deepl: {
     selector: "div[aria-labelledby='translation-target-heading'] p span",
     maxLength: 1500,
     template: 'https://www.deepl.com/translator#${from}/${to}/${text}',
-    urls: function (text: string, from: string, to: string) {
+    queues: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('1', from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
   },
   papago: {
     selector: '#txtTarget span',
     maxLength: 3000,
     template: 'https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}',
-    urls: function (text: string, from: string, to: string) {
-      return createUrls(this.template, text, from, to, this.maxLength);
+    queues: function (text: string, from: string, to: string) {
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
   },
   yandex: {
@@ -96,10 +116,10 @@ export const providers: Record<ProviderName, Provider> = {
     maxLength: 10000,
     template:
       'https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}',
-    urls: function (text: string, from: string, to: string) {
+    queues: function (text: string, from: string, to: string) {
       throw new Error('Yandex has been disabled due to robot detection');
       [from, to] = convertLangCodes('1', from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
     prepare: async function (page: Page) {
       try {
@@ -121,9 +141,9 @@ export const providers: Record<ProviderName, Provider> = {
     maxLength: 2000,
     template:
       'https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}',
-    urls: function (text: string, from: string, to: string) {
+    queues: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('2', from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
   },
   bing: {
@@ -132,9 +152,9 @@ export const providers: Record<ProviderName, Provider> = {
     maxLength: 1000,
     template:
       'https://www.bing.com/translator?from=${from}&to=${to}&text=${text}',
-    urls: function (text: string, from: string, to: string) {
+    queues: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('1', from, to);
-      return createUrls(this.template, text, from, to, this.maxLength);
+      return createQueues(this.template, text, from, to, this.maxLength);
     },
     prepare: async function (page: Page) {
       try {

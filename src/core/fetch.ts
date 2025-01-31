@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Provider } from './providers';
+import { Provider, ProviderName, providers, Queue } from './providers';
 import { wait } from 'utils-js';
 
 // add stealth plugin and use defaults (all evasion techniques)
@@ -79,20 +79,51 @@ async function getPageContent(
     .join('');
 }
 
-export async function getContent(urls: string[], provider: Provider) {
+export async function translate(
+  provider: ProviderName,
+  from: string,
+  to: string,
+  text: string,
+  cb?: (
+    error: unknown | null,
+    originalText: string,
+    translatedText: string,
+    index: number,
+    array: Queue[]
+  ) => void
+) {
+  const p = providers[provider];
+  if (!p) {
+    throw new Error(`Provider not found: ${provider}`);
+  }
+
+  const queues = p.queues.apply(p, [text, from, to]);
+  if (queues.length === 0) {
+    return '';
+  }
+
   const browser = await puppeteer.launch({
     headless: true,
     userDataDir: fetchOptions.cacheDir,
     // executablePath: "google-chrome-stable",
   });
 
-  let result = '';
-  for (const url of urls) {
+  let result = '',
+    index = 0;
+
+  for (const queue of queues) {
     try {
-      result += await getPageContent(browser, url, provider);
-    } catch (err) {
-      console.error(err);
+      const translatedText = await getPageContent(browser, queue.url, p);
+      result += translatedText;
+      if (cb) {
+        cb(null, queue.text, translatedText, index, queues);
+      }
+    } catch (err: unknown) {
+      if (cb) {
+        cb(err, queue.text, '', index, queues);
+      }
     }
+    index++;
   }
 
   await browser.close();
