@@ -13412,7 +13412,7 @@ function createQueue(lines, size) {
   return queue;
 }
 async function translateLineByLine(provider, sourceLanguage, targetLanguage, text, callback) {
-  const srcLines = splitText(text);
+  const srcLines = typeof text === "string" ? splitText(text) : text;
   const dstLines = [];
   const queue = createQueue(srcLines, 512);
   let i = 0, j = 0;

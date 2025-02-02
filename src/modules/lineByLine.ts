@@ -153,7 +153,7 @@ export async function translateLineByLine(
   provider: string,
   sourceLanguage: string,
   targetLanguage: string,
-  text: string,
+  text: string | string[],
   callback?: (
     newValue: string | null,
     currentValue: string,
@@ -161,7 +161,7 @@ export async function translateLineByLine(
     array: string[]
   ) => void
 ): Promise<string> {
-  const srcLines = splitText(text);
+  const srcLines = typeof text === 'string' ? splitText(text) : text;
   const dstLines: string[] = [];
   const queue = createQueue(srcLines, 512);
   let i = 0,
