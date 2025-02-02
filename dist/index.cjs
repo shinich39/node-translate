@@ -12729,11 +12729,39 @@ var require_country_language = __commonJS({
   }
 });
 
+// node_modules/is-url/index.js
+var require_is_url = __commonJS({
+  "node_modules/is-url/index.js"(exports2, module2) {
+    module2.exports = isUrl2;
+    var protocolAndDomainRE = /^(?:\w+:)?\/\/(\S+)$/;
+    var localhostDomainRE = /^localhost[\:?\d]*(?:[^\:?\d]\S*)?$/;
+    var nonLocalhostDomainRE = /^[^\s\.]+\.\S{2,}$/;
+    function isUrl2(string) {
+      if (typeof string !== "string") {
+        return false;
+      }
+      var match = string.match(protocolAndDomainRE);
+      if (!match) {
+        return false;
+      }
+      var everythingAfterProtocol = match[1];
+      if (!everythingAfterProtocol) {
+        return false;
+      }
+      if (localhostDomainRE.test(everythingAfterProtocol) || nonLocalhostDomainRE.test(everythingAfterProtocol)) {
+        return true;
+      }
+      return false;
+    }
+  }
+});
+
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
   destroy: () => destroy,
-  translate: () => translate
+  translate: () => translate,
+  translateToLines: () => translateToLines
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -13349,8 +13377,98 @@ async function translate(provider, from, to, text, lifetime = 0) {
     throw err;
   }
 }
+
+// src/example/line.ts
+var import_is_url = __toESM(require_is_url(), 1);
+function isSpecial(str) {
+  return /^[^\p{L}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(
+    str
+  );
+}
+function isEmpty(str) {
+  return str.trim() === "";
+}
+function findLastIndex(arr, callback) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (callback(arr[i], i, arr)) {
+      return i;
+    }
+  }
+  return -1;
+}
+function splitText(str) {
+  return str.split(/(\r\n|\r|\n)/);
+}
+function createQueue(lines, size) {
+  const queue = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const prevIndex = findLastIndex(queue, (item) => item.isText);
+    const prev = prevIndex > -1 ? queue[prevIndex] : void 0;
+    if (isEmpty(line) || (0, import_is_url.default)(line) || isSpecial(line)) {
+      queue.push({
+        isText: false,
+        index: 0,
+        value: line
+      });
+    } else if (prev && prev.value.length + line.length < size) {
+      prev.value += "\n" + line;
+      for (let i2 = prevIndex + 1; i2 < queue.length; i2++) {
+        queue[i2].index--;
+      }
+    } else {
+      queue.push({
+        isText: true,
+        index: 0,
+        value: line
+      });
+    }
+  }
+  return queue;
+}
+async function translateToLines(provider, sourceLanguage, targetLanguage, text, callback) {
+  const srcLines = splitText(text);
+  const dstLines = [];
+  const queue = createQueue(srcLines, 512);
+  let i = 0, j = 0;
+  for (i; i < queue.length; i++) {
+    const { isText, index, value } = queue[i];
+    if (!isText) {
+      dstLines.splice(dstLines.length + index, 0, value);
+    } else {
+      if (callback) {
+        for (j; j < dstLines.length; j++) {
+          callback(dstLines[j], srcLines[j], j, srcLines);
+        }
+      }
+      try {
+        const translatedText = await translate(
+          provider,
+          sourceLanguage,
+          targetLanguage,
+          value,
+          1e3 * 60
+        );
+        dstLines.push(...translatedText.split(/\r\n|\r|\n/));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error.";
+        dstLines.push(
+          ...value.split(/\r\n|\r|\n/).map(() => `ERROR=${message}`)
+        );
+      }
+    }
+  }
+  if (callback) {
+    for (j; j < dstLines.length; j++) {
+      callback(dstLines[j], srcLines[j], j, srcLines);
+    }
+  }
+  await destroy();
+  return dstLines.join("");
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   destroy,
-  translate
+  translate,
+  translateToLines
 });
