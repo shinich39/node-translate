@@ -62,6 +62,23 @@ for (const p of providers) {
 // bing: 赤ちゃんは仰向けに寝ていました。青い鳥が窓から飛び込んできました。その青い鳥は青い目を持っていました。
 ```
 
+```js
+import { translateLineByLine } from 'node-translate';
+
+const text = fs.readFileSync('test/mobydick.txt', 'utf8');
+const res = await translateLineByLine(
+  'papago',
+  'en',
+  'ko',
+  text,
+  (newValue, curerentValue, currentIndex, array) => {
+    console.log(currentIndex, '/', array.length - 1);
+  }
+);
+
+fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
+```
+
 ## Acknowledgements
 
 - [cheerio](https://www.npmjs.com/package/cheerio)

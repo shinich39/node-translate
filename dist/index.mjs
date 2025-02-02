@@ -13363,7 +13363,7 @@ async function translate(provider, from, to, text, lifetime = 0) {
   }
 }
 
-// src/example/line.ts
+// src/modules/lineByLine.ts
 var import_is_url = __toESM(require_is_url(), 1);
 function isSpecial(str) {
   return /^[^\p{L}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(
@@ -13411,7 +13411,7 @@ function createQueue(lines, size) {
   }
   return queue;
 }
-async function translateToLines(provider, sourceLanguage, targetLanguage, text, callback) {
+async function translateLineByLine(provider, sourceLanguage, targetLanguage, text, callback) {
   const srcLines = splitText(text);
   const dstLines = [];
   const queue = createQueue(srcLines, 512);
@@ -13454,5 +13454,5 @@ async function translateToLines(provider, sourceLanguage, targetLanguage, text, 
 export {
   destroy,
   translate,
-  translateToLines
+  translateLineByLine
 };

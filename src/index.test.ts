@@ -4,7 +4,7 @@ import { describe, test, it } from 'node:test';
 import assert from 'node:assert';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { destroy, translate, translateToLines } from './index';
+import { destroy, translate, translateLineByLine } from './index';
 import fs from 'node:fs';
 const __path = path.relative(process.cwd(), fileURLToPath(import.meta.url));
 const eq = (a, b, msg) =>
@@ -43,18 +43,18 @@ describe('src/index.ts', () => {
   //     await destroy();
   //   });
 
-  test('translateToLines', async () => {
+  test('translateLineByLine', async () => {
     const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const res = await translateToLines(
+    const res = await translateLineByLine(
       'papago',
       'en',
-      'ja',
+      'ko',
       text,
       (newValue, curerentValue, currentIndex, array) => {
-        console.log(currentIndex, '/', array.length);
+        console.log(currentIndex, '/', array.length - 1);
       }
     );
 
-    fs.writeFileSync('test/mobydick.ja.txt', res, 'utf8');
+    fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
   });
 });

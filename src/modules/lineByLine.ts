@@ -149,7 +149,7 @@ function createQueue(lines: string[], size: number) {
   return queue;
 }
 
-export async function translateToLines(
+export async function translateLineByLine(
   provider: string,
   sourceLanguage: string,
   targetLanguage: string,
