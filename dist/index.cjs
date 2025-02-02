@@ -13327,7 +13327,7 @@ async function destroy() {
     await b.close();
   }
 }
-async function translate(provider, from, to, text, lifetime = 0) {
+async function translate(provider, sourceLanguage, targetLanguage, text, lifetime = 0) {
   const p = providers.find((item) => item.name === provider);
   if (!p) {
     throw new Error(`Provider not found: ${provider}`);
@@ -13336,7 +13336,7 @@ async function translate(provider, from, to, text, lifetime = 0) {
     throw new Error(`Too many characters: ${text.length} > ${p.maxLength}`);
   }
   const { selector, prepare } = p;
-  const url = p.url.apply(p, [text, from, to]);
+  const url = p.url.apply(p, [text, sourceLanguage, targetLanguage]);
   if (!browser) {
     browser = await import_puppeteer_extra.default.launch({
       headless: true,

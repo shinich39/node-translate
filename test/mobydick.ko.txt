@@ -228,21 +228,21 @@ ERROR=Protocol error (Target.createTarget): Session with given id not found.
 지속적인 감시를 받고 있는 운명의 경찰관- 
 나의 창, 몰래 나를 개로 키우고 나에게 영향을 미칩니다 
 그가 가장 잘 대답할 수 있는 설명할 수 없는 방법
-또 하나. 그리고 의심할 여지 없이, 나는 이 고래잡이를 계속하고 있습니다 
-항해는 프로비의 대규모 프로그램의 일부였습니다- 
-오래 전에 작성된 춤. 그것이 들어왔습니다 
-더 넓은 범위 사이에서 일종의 짧은 막간과 솔로로- 
-시브 퍼포먼스. 저는 이 부분이 청구서에 포함된다고 생각합니다 
-이런 식으로 실행했을 것입니다: 
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
 
-' 대통령 선거 대선거 
-미국. 
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
 
-' 이스마엘의 고래잡이 항해. 
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
 
-아프가니스탄에서 벌어진 1차 유혈 전투 
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
 
-그 이유를 정확히 알 수는 없지만
+ERROR=Protocol error (Target.createTarget): Session with given id not found.
 무대 감독들, 운명아, 이 초라한 상황 때문에 저를 실망시켰습니다 
 
 

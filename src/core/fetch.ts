@@ -34,8 +34,8 @@ export async function destroy() {
 
 export async function translate(
   provider: string,
-  from: string,
-  to: string,
+  sourceLanguage: string,
+  targetLanguage: string,
   text: string,
   lifetime: number = 0
 ) {
@@ -49,7 +49,7 @@ export async function translate(
   }
 
   const { selector, prepare } = p;
-  const url = p.url.apply(p, [text, from, to]);
+  const url = p.url.apply(p, [text, sourceLanguage, targetLanguage]);
 
   if (!browser) {
     browser = await puppeteer.launch({
