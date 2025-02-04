@@ -155,7 +155,7 @@ export async function translateLineByLine(
   targetLanguage: string,
   text: string | string[],
   callback?: (
-    newValue: string | null,
+    newValue: string,
     currentValue: string,
     currentIndex: number,
     array: string[]
