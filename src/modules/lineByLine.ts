@@ -44,7 +44,7 @@ function isError(str: string) {
 }
 
 function isLineBreak(str: string) {
-  return /^(?:\r\n|\r|\n)$/.test(str);
+  return /^(?:\r\n|\r|\n)+$/.test(str);
 }
 
 function isContained(str: string) {
@@ -94,7 +94,7 @@ function splitLine(str: string) {
 }
 
 function splitText(str: string) {
-  return str.split(/(\r\n|\r|\n)/);
+  return str.split(/\r\n|\r|\n/);
 }
 
 function concatTexts(arr: string[], size: number) {
@@ -188,12 +188,10 @@ export async function translateLineByLine(
           1000 * 60
         );
 
-        dstLines.push(...translatedText.split(/\r\n|\r|\n/));
+        dstLines.push(...splitText(translatedText));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error.';
-        dstLines.push(
-          ...value.split(/\r\n|\r|\n/).map(() => `ERROR=${message}`)
-        );
+        dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
       }
     }
   }
@@ -207,5 +205,5 @@ export async function translateLineByLine(
 
   await destroy();
 
-  return dstLines.join('');
+  return dstLines.join('\n');
 }

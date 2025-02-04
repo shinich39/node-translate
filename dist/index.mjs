@@ -13382,7 +13382,7 @@ function findLastIndex(arr, callback) {
   return -1;
 }
 function splitText(str) {
-  return str.split(/(\r\n|\r|\n)/);
+  return str.split(/\r\n|\r|\n/);
 }
 function createQueue(lines, size) {
   const queue = [];
@@ -13434,12 +13434,10 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
           value,
           1e3 * 60
         );
-        dstLines.push(...translatedText.split(/\r\n|\r|\n/));
+        dstLines.push(...splitText(translatedText));
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error.";
-        dstLines.push(
-          ...value.split(/\r\n|\r|\n/).map(() => `ERROR=${message}`)
-        );
+        dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
       }
     }
   }
@@ -13449,7 +13447,7 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
     }
   }
   await destroy();
-  return dstLines.join("");
+  return dstLines.join("\n");
 }
 export {
   destroy,

@@ -51,7 +51,7 @@ describe('src/index.ts', () => {
       'ko',
       text,
       (newValue, curerentValue, currentIndex, array) => {
-        console.log(currentIndex, '/', array.length - 1);
+        console.log(currentIndex + 1, '/', array.length);
       }
     );
 
