@@ -13439,10 +13439,10 @@ function createQueue(lines, size) {
   }
   return queue;
 }
-async function translateLineByLine(provider, sourceLanguage, targetLanguage, text, callback) {
+async function translateLineByLine(provider, sourceLanguage, targetLanguage, text, callback, size = 512) {
   const srcLines = typeof text === "string" ? splitText(text) : text;
   const dstLines = [];
-  const queue = createQueue(srcLines, 512);
+  const queue = createQueue(srcLines, size);
   let i = 0, j = 0;
   for (i; i < queue.length; i++) {
     const { isText, index, value } = queue[i];

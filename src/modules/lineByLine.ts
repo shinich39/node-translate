@@ -159,11 +159,12 @@ export async function translateLineByLine(
     currentValue: string,
     currentIndex: number,
     array: string[]
-  ) => void
+  ) => void,
+  size: number = 512
 ): Promise<string> {
   const srcLines = typeof text === 'string' ? splitText(text) : text;
   const dstLines: string[] = [];
-  const queue = createQueue(srcLines, 512);
+  const queue = createQueue(srcLines, size);
   let i = 0,
     j = 0;
   for (i; i < queue.length; i++) {
