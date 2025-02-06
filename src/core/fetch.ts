@@ -57,7 +57,7 @@ export async function translate(
   if (!createdAt) {
     createdAt = Date.now();
     browser = await puppeteer.launch({
-      headless: false,
+      // headless: false,
       // args: ["--no-sandbox"],
       userDataDir: '.puppeteer',
       // executablePath: "google-chrome-stable",
