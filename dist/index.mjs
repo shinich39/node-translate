@@ -13440,7 +13440,7 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
           sourceLanguage,
           targetLanguage,
           value,
-          1e3 * 10
+          1e3 * 60
         );
         dstLines.push(...splitText(translatedText));
       } catch (err) {

@@ -185,7 +185,7 @@ export async function translateLineByLine(
           sourceLanguage,
           targetLanguage,
           value,
-          1000 * 10
+          1000 * 60
         );
 
         dstLines.push(...splitText(translatedText));
