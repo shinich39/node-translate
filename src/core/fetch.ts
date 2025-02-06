@@ -5,11 +5,13 @@ import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { providers } from './providers';
+import { wait } from 'utils-js';
 
 // add stealth plugin and use defaults (all evasion techniques)
 puppeteer.use(StealthPlugin());
 
 let browser: null | Browser = null,
+  createdAt: null | number = null,
   timer: null | ReturnType<typeof setTimeout> = null;
 
 function setTimer(time: number) {
@@ -27,6 +29,7 @@ export async function destroy() {
 
   if (browser) {
     const b = browser;
+    createdAt = null;
     browser = null;
     await b.close();
   }
@@ -51,12 +54,19 @@ export async function translate(
   const { selector, prepare } = p;
   const url = p.url.apply(p, [text, sourceLanguage, targetLanguage]);
 
-  if (!browser) {
+  if (!createdAt) {
+    createdAt = Date.now();
     browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
+      // args: ["--no-sandbox"],
       userDataDir: '.puppeteer',
       // executablePath: "google-chrome-stable",
     });
+  } else {
+    // wait browser launched
+    while (!browser) {
+      await wait(128);
+    }
   }
 
   if (lifetime) {

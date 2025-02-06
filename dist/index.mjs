@@ -13295,6 +13295,7 @@ var providers = [
 // src/core/fetch.ts
 puppeteer.use(StealthPlugin());
 var browser = null;
+var createdAt = null;
 var timer = null;
 function setTimer(time) {
   if (timer) {
@@ -13308,6 +13309,7 @@ async function destroy() {
   }
   if (browser) {
     const b = browser;
+    createdAt = null;
     browser = null;
     await b.close();
   }
@@ -13322,12 +13324,18 @@ async function translate(provider, sourceLanguage, targetLanguage, text, lifetim
   }
   const { selector, prepare } = p;
   const url = p.url.apply(p, [text, sourceLanguage, targetLanguage]);
-  if (!browser) {
+  if (!createdAt) {
+    createdAt = Date.now();
     browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
+      // args: ["--no-sandbox"],
       userDataDir: ".puppeteer"
       // executablePath: "google-chrome-stable",
     });
+  } else {
+    while (!browser) {
+      await _e(128);
+    }
   }
   if (lifetime) {
     setTimer(lifetime);
@@ -13432,7 +13440,7 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
           sourceLanguage,
           targetLanguage,
           value,
-          1e3 * 60
+          1e3 * 10
         );
         dstLines.push(...splitText(translatedText));
       } catch (err) {
@@ -13446,7 +13454,6 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
       callback(dstLines[j], srcLines[j], j, srcLines);
     }
   }
-  await destroy();
   return dstLines.join("\n");
 }
 export {

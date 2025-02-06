@@ -185,7 +185,7 @@ export async function translateLineByLine(
           sourceLanguage,
           targetLanguage,
           value,
-          1000 * 60
+          1000 * 10
         );
 
         dstLines.push(...splitText(translatedText));
@@ -203,7 +203,7 @@ export async function translateLineByLine(
     }
   }
 
-  await destroy();
+  // await destroy();
 
   return dstLines.join('\n');
 }

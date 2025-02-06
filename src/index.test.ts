@@ -43,18 +43,56 @@ describe('src/index.ts', () => {
   //     await destroy();
   //   });
 
-  test('translateLineByLine', async () => {
+  // test('translateLineByLine', async () => {
+  //   const text = fs.readFileSync('test/mobydick.txt', 'utf8');
+  //   const res = await translateLineByLine(
+  //     'papago',
+  //     'en',
+  //     'ko',
+  //     text,
+  //     (newValue, curerentValue, currentIndex, array) => {
+  //       console.log(currentIndex + 1, '/', array.length);
+  //     }
+  //   );
+
+  //   fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
+  // });
+
+  test('multiple translateLineByLine', async () => {
     const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const res = await translateLineByLine(
+
+    let count = 0;
+
+    translateLineByLine(
       'papago',
       'en',
       'ko',
       text,
       (newValue, curerentValue, currentIndex, array) => {
-        console.log(currentIndex + 1, '/', array.length);
+        console.log('ko', currentIndex + 1, '/', array.length);
       }
-    );
+    ).then((res) => {
+      fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
+      count++;
+      if (count === 2) {
+        destroy();
+      }
+    });
 
-    fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
+    translateLineByLine(
+      'papago',
+      'en',
+      'ja',
+      text,
+      (newValue, curerentValue, currentIndex, array) => {
+        console.log('ja', currentIndex + 1, '/', array.length);
+      }
+    ).then((res) => {
+      fs.writeFileSync('test/mobydick.ja.txt', res, 'utf8');
+      count++;
+      if (count === 2) {
+        destroy();
+      }
+    });
   });
 });
