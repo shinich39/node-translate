@@ -13295,6 +13295,7 @@ var providers = [
 // src/core/fetch.ts
 puppeteer.use(StealthPlugin());
 var browser = null;
+var cacheDir = ".puppeteer";
 var createdAt = null;
 var timer = null;
 function setTimer(time) {
@@ -13302,6 +13303,9 @@ function setTimer(time) {
     clearTimeout(timer);
   }
   timer = setTimeout(destroy, time);
+}
+function setCacheDir(str) {
+  cacheDir = str;
 }
 async function destroy() {
   if (timer) {
@@ -13329,7 +13333,7 @@ async function translate(provider, sourceLanguage, targetLanguage, text, lifetim
     browser = await puppeteer.launch({
       // headless: false,
       // args: ["--no-sandbox"],
-      userDataDir: ".puppeteer"
+      userDataDir: cacheDir
       // executablePath: "google-chrome-stable",
     });
   } else {
@@ -13458,6 +13462,7 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
 }
 export {
   destroy,
+  setCacheDir,
   translate,
   translateLineByLine
 };

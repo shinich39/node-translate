@@ -11,6 +11,7 @@ import { wait } from 'utils-js';
 puppeteer.use(StealthPlugin());
 
 let browser: null | Browser = null,
+  cacheDir = '.puppeteer',
   createdAt: null | number = null,
   timer: null | ReturnType<typeof setTimeout> = null;
 
@@ -20,6 +21,10 @@ function setTimer(time: number) {
   }
 
   timer = setTimeout(destroy, time);
+}
+
+export function setCacheDir(str: string) {
+  cacheDir = str;
 }
 
 export async function destroy() {
@@ -59,7 +64,7 @@ export async function translate(
     browser = await puppeteer.launch({
       // headless: false,
       // args: ["--no-sandbox"],
-      userDataDir: '.puppeteer',
+      userDataDir: cacheDir,
       // executablePath: "google-chrome-stable",
     });
   } else {

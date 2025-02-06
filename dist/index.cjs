@@ -12760,6 +12760,7 @@ var require_is_url = __commonJS({
 var index_exports = {};
 __export(index_exports, {
   destroy: () => destroy,
+  setCacheDir: () => setCacheDir,
   translate: () => translate,
   translateLineByLine: () => translateLineByLine
 });
@@ -13310,6 +13311,7 @@ var providers = [
 // src/core/fetch.ts
 import_puppeteer_extra.default.use((0, import_puppeteer_extra_plugin_stealth.default)());
 var browser = null;
+var cacheDir = ".puppeteer";
 var createdAt = null;
 var timer = null;
 function setTimer(time) {
@@ -13317,6 +13319,9 @@ function setTimer(time) {
     clearTimeout(timer);
   }
   timer = setTimeout(destroy, time);
+}
+function setCacheDir(str) {
+  cacheDir = str;
 }
 async function destroy() {
   if (timer) {
@@ -13344,7 +13349,7 @@ async function translate(provider, sourceLanguage, targetLanguage, text, lifetim
     browser = await import_puppeteer_extra.default.launch({
       // headless: false,
       // args: ["--no-sandbox"],
-      userDataDir: ".puppeteer"
+      userDataDir: cacheDir
       // executablePath: "google-chrome-stable",
     });
   } else {
@@ -13474,6 +13479,7 @@ async function translateLineByLine(provider, sourceLanguage, targetLanguage, tex
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   destroy,
+  setCacheDir,
   translate,
   translateLineByLine
 });
