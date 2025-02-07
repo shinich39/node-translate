@@ -1,15 +1,11 @@
 import { Browser } from 'puppeteer';
 import { ProviderNames } from './provider';
-export interface TranslatorOptions {
-    provider: ProviderNames;
-    cacheDir?: string;
-}
 export declare class Translator {
     provider: ProviderNames;
     cacheDir: string;
     isOpened: boolean;
     browser?: Browser;
-    constructor(options: TranslatorOptions);
+    constructor(provider?: ProviderNames, cacheDir?: string);
     open(): Promise<void>;
     close(): Promise<void>;
     text(sourceLanguage: string, targetLanguage: string, text: string): Promise<string>;

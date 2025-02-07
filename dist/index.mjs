@@ -13359,11 +13359,10 @@ function createQueue(lines, size) {
 // src/models/translator.ts
 puppeteer.use(StealthPlugin());
 var Translator = class {
-  constructor(options) {
+  constructor(provider = "google", cacheDir = ".puppeteer") {
     this.isOpened = false;
-    this.provider = "google";
-    this.cacheDir = ".puppeteer";
-    Object.assign(this, options);
+    this.provider = provider;
+    this.cacheDir = cacheDir;
   }
   async open() {
     this.isOpened = true;

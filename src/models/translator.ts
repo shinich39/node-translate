@@ -12,21 +12,18 @@ import { splitText } from '../utils/string';
 // add stealth plugin and use defaults (all evasion techniques)
 puppeteer.use(StealthPlugin());
 
-export interface TranslatorOptions {
-  provider: ProviderNames;
-  cacheDir?: string;
-}
-
 export class Translator {
   provider: ProviderNames;
   cacheDir: string;
   isOpened: boolean;
   browser?: Browser;
-  constructor(options: TranslatorOptions) {
+  constructor(
+    provider: ProviderNames = 'google',
+    cacheDir: string = '.puppeteer'
+  ) {
     this.isOpened = false;
-    this.provider = 'google';
-    this.cacheDir = '.puppeteer';
-    Object.assign(this, options);
+    this.provider = provider;
+    this.cacheDir = cacheDir;
   }
 
   async open() {

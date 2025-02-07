@@ -57,24 +57,23 @@ The blue bird had blue eyes.
   //     await t.close();
   //   });
 
-  test('line', async () => {
-    const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const t = new Translator();
-    t.provider = 'papago';
+  // test('line', async () => {
+  //   const text = fs.readFileSync('test/mobydick.txt', 'utf8');
+  //   const t = new Translator("papago");
 
-    console.time('line');
-    const res = await t.line(
-      'en',
-      'ko',
-      text,
-      (newValue, oldValue, index, array) => {
-        console.log(index + 1, '/', array.length);
-      }
-    );
-    console.timeEnd('line');
+  //   console.time('line');
+  //   const res = await t.line(
+  //     'en',
+  //     'ko',
+  //     text,
+  //     (newValue, oldValue, index, array) => {
+  //       console.log(index + 1, '/', array.length);
+  //     }
+  //   );
+  //   console.timeEnd('line');
 
-    fs.writeFileSync('test/mobydick.ko.txt', res.join('\n'), 'utf8');
+  //   fs.writeFileSync('test/mobydick.ko.txt', res.join('\n'), 'utf8');
 
-    await t.close();
-  });
+  //   await t.close();
+  // });
 });
