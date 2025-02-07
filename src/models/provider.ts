@@ -20,9 +20,9 @@ function convertLangCodes(type: string, text: string, ...args: string[]) {
 
 function createUrl(template: string, text: string, from: string, to: string) {
   return parseTemplate(template, {
-    text: encode(text),
-    from: from,
-    to: to,
+    text,
+    from,
+    to,
   });
 }
 
@@ -31,13 +31,10 @@ async function getContent(page: Page, selector: string) {
   if (!element) {
     return;
   }
-
   const content = await page.evaluate((elem) => elem?.textContent, element);
-
   if (!content || content.trim() === '') {
     return;
   }
-
   return content;
 }
 
@@ -73,6 +70,7 @@ export const providers: Provider[] = [
       'https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('iso639-1', text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -84,6 +82,7 @@ export const providers: Provider[] = [
     template: 'https://www.deepl.com/translator#${from}/${to}/${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('iso639-1', text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -107,6 +106,8 @@ export const providers: Provider[] = [
     template: 'https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('iso639-1', text, from, to);
+      // fix encoding &
+      text = encode(text).replace(/%26/g, '%25amp');
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -131,6 +132,7 @@ export const providers: Provider[] = [
     url: function (text: string, from: string, to: string) {
       throw new Error('Yandex has been disabled due to robot detection');
       [from, to] = convertLangCodes('iso639-1', text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -142,6 +144,8 @@ export const providers: Provider[] = [
       'https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('iso639-2', text, from, to);
+      // fix encoding &
+      text = encode(text).replace(/%26/g, '%2526');
       return createUrl(this.template, text, from, to);
     },
   },
@@ -153,6 +157,7 @@ export const providers: Provider[] = [
       'https://www.bing.com/translator?from=${from}&to=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
       [from, to] = convertLangCodes('iso639-1', text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {

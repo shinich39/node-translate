@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Translator } from './index';
 import fs from 'node:fs';
+import { toHalfWidth } from 'utils-js';
 const __path = path.relative(process.cwd(), fileURLToPath(import.meta.url));
 const eq = (a, b, msg) =>
   typeof a === 'object'
@@ -79,14 +80,15 @@ describe('src/index.ts', () => {
 
   test('splitLine', async () => {
     const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const lines = text.split(/\r\n|\r|\n/);
     const t = new Translator('papago');
-
+    const data = toHalfWidth(text)
+      .replace(/(\r\n|\r|\n)+/g, '\n')
+      .replace(/\n/g, '\n');
     console.time('line');
     const res = await t.line(
       'en',
       'ko',
-      lines,
+      data,
       (newValue, oldValue, index, array) => {
         console.log(index + 1, '/', array.length);
       }

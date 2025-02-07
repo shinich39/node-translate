@@ -13178,7 +13178,7 @@ function convertLangCodes(type, text, ...args) {
 }
 function createUrl(template, text, from, to) {
   return ht(template, {
-    text: encode(text),
+    text,
     from,
     to
   });
@@ -13207,6 +13207,7 @@ var providers = [
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("iso639-1", text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13218,6 +13219,7 @@ var providers = [
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("iso639-1", text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13241,6 +13243,7 @@ var providers = [
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("iso639-1", text, from, to);
+      text = encode(text).replace(/%26/g, "%25amp");
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13264,6 +13267,7 @@ var providers = [
     url: function(text, from, to) {
       throw new Error("Yandex has been disabled due to robot detection");
       [from, to] = convertLangCodes("iso639-1", text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13274,6 +13278,7 @@ var providers = [
     template: "https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("iso639-2", text, from, to);
+      text = encode(text).replace(/%26/g, "%2526");
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13284,6 +13289,7 @@ var providers = [
     template: "https://www.bing.com/translator?from=${from}&to=${to}&text=${text}",
     url: function(text, from, to) {
       [from, to] = convertLangCodes("iso639-1", text, from, to);
+      text = encode(text);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13332,24 +13338,29 @@ function createQueue(lines, size) {
   const queue = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const prevIndex = findLastIndex(queue, (item) => item.isText);
-    const prev = prevIndex > -1 ? queue[prevIndex] : void 0;
     if (isEmpty(line) || (0, import_is_url.default)(line) || isSpecial(line)) {
       queue.push({
         isText: false,
         index: 0,
-        value: line
+        values: [line],
+        length: line.length
       });
-    } else if (prev && prev.value.length + line.length < size) {
-      prev.value += "\n" + line;
-      for (let i2 = prevIndex + 1; i2 < queue.length; i2++) {
+      continue;
+    }
+    const prevTextIndex = findLastIndex(queue, (item) => item.isText);
+    const prevText = prevTextIndex > -1 ? queue[prevTextIndex] : void 0;
+    if (prevText && prevText.length + line.length < size) {
+      prevText.values.push(line);
+      prevText.length += line.length + 1;
+      for (let i2 = prevTextIndex + 1; i2 < queue.length; i2++) {
         queue[i2].index--;
       }
     } else {
       queue.push({
         isText: true,
         index: 0,
-        value: line
+        values: [line],
+        length: line.length
       });
     }
   }
@@ -13441,9 +13452,9 @@ var Translator = class {
     const queue = createQueue(srcLines, size);
     let i = 0, j = 0;
     for (i; i < queue.length; i++) {
-      const { isText, index, value } = queue[i];
+      const { isText, index, values } = queue[i];
       if (!isText) {
-        dstLines.splice(dstLines.length + index, 0, value);
+        dstLines.splice(dstLines.length + index, 0, values[0]);
       } else {
         if (callback) {
           for (j; j < dstLines.length; j++) {
@@ -13454,12 +13465,17 @@ var Translator = class {
           const translatedText = await this.text(
             sourceLanguage,
             targetLanguage,
-            value
+            values.join("\n")
           );
-          dstLines.push(...splitText(translatedText));
+          const translatedLines = splitText(translatedText);
+          for (let k = 0; k < values.length; k++) {
+            dstLines.push(translatedLines[k] || values[k]);
+          }
         } catch (err) {
-          const message = err instanceof Error ? err.message : "Unknown error.";
-          dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
+          const message = err instanceof Error ? err.message : "UnknownError";
+          for (let k = 0; k < values.length; k++) {
+            dstLines.push(`ERROR=${message}`);
+          }
         }
       }
     }

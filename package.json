@@ -13,11 +13,11 @@
   },
   "type": "module",
   "scripts": {
-    "test": "tsx --test '**/*.test.{js,jsx,ts,tsx}'",
+    "test": "tsx --test \"**/*.test.{js,jsx,ts,tsx}\"",
     "build": "npm run lint && npm run prettier && npm run bundle && npm run compile",
     "compile": "tsc --project tsconfig.json",
     "bundle": "node esbuild.config.js",
-    "prettier": "prettier --write 'src/**/*.{js,jsx,ts,tsx}'",
+    "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint": "eslint",
     "lint:fix": "eslint --fix"
   },

@@ -57,6 +57,7 @@ export class Translator {
 
   async text(sourceLanguage: string, targetLanguage: string, text: string) {
     await this.open();
+
     if (!this.browser) {
       throw new Error('Browser not found');
     }
@@ -77,7 +78,6 @@ export class Translator {
       targetLanguage,
     ]);
     const page = await this.browser.newPage();
-
     try {
       await page.goto(url, {
         waitUntil: 'load',
@@ -118,6 +118,7 @@ export class Translator {
     size: number = 512
   ) {
     await this.open();
+
     if (!this.browser) {
       throw new Error('Browser not found');
     }
@@ -128,10 +129,10 @@ export class Translator {
     let i = 0,
       j = 0;
     for (i; i < queue.length; i++) {
-      const { isText, index, value } = queue[i];
+      const { isText, index, values } = queue[i];
 
       if (!isText) {
-        dstLines.splice(dstLines.length + index, 0, value);
+        dstLines.splice(dstLines.length + index, 0, values[0]);
       } else {
         // send callback after linebreaks insertion
         if (callback) {
@@ -144,13 +145,18 @@ export class Translator {
           const translatedText = await this.text(
             sourceLanguage,
             targetLanguage,
-            value
+            values.join('\n')
           );
 
-          dstLines.push(...splitText(translatedText));
+          const translatedLines = splitText(translatedText);
+          for (let k = 0; k < values.length; k++) {
+            dstLines.push(translatedLines[k] || values[k]);
+          }
         } catch (err) {
-          const message = err instanceof Error ? err.message : 'Unknown error.';
-          dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
+          const message = err instanceof Error ? err.message : 'UnknownError';
+          for (let k = 0; k < values.length; k++) {
+            dstLines.push(`ERROR=${message}`);
+          }
         }
       }
     }
