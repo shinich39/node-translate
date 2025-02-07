@@ -27,13 +27,20 @@ export class Translator {
   }
 
   async open() {
-    this.isOpened = true;
-    this.browser = await puppeteer.launch({
-      // headless: false,
-      // args: ["--no-sandbox"],
-      userDataDir: this.cacheDir,
-      // executablePath: "google-chrome-stable",
-    });
+    if (!this.isOpened) {
+      this.isOpened = true;
+      this.browser = await puppeteer.launch({
+        // headless: false,
+        // args: ["--no-sandbox"],
+        userDataDir: this.cacheDir,
+        // executablePath: "google-chrome-stable",
+      });
+    }
+
+    // wait browser launched
+    while (!this.browser) {
+      await wait(128);
+    }
   }
 
   async close() {
@@ -49,13 +56,9 @@ export class Translator {
   }
 
   async text(sourceLanguage: string, targetLanguage: string, text: string) {
-    if (!this.isOpened) {
-      await this.open();
-    }
-
-    // wait browser launched
-    while (!this.browser) {
-      await wait(128);
+    await this.open();
+    if (!this.browser) {
+      throw new Error('Browser not found');
     }
 
     const provider = providers.find((item) => item.name === this.provider);
@@ -114,6 +117,11 @@ export class Translator {
     ) => void,
     size: number = 512
   ) {
+    await this.open();
+    if (!this.browser) {
+      throw new Error('Browser not found');
+    }
+
     const srcLines = typeof text === 'string' ? splitText(text) : text;
     const dstLines: string[] = [];
     const queue = createQueue(srcLines, size);
@@ -147,7 +155,7 @@ export class Translator {
       }
     }
 
-    // snd remainings to callback
+    // send remainings to callback
     if (callback) {
       for (j; j < dstLines.length; j++) {
         callback(dstLines[j], srcLines[j], j, srcLines);

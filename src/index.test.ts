@@ -13,36 +13,36 @@ const eq = (a, b, msg) =>
     : assert.strictEqual(a, b, msg);
 
 describe('src/index.ts', () => {
-  test('text', async () => {
-    const text = `
-The baby was lying on her back.
-A blue bird flew in through the window.
-The blue bird had blue eyes.
-    `.trim();
+  //   test('text', async () => {
+  //     const text = `
+  // The baby was lying on her back.
+  // A blue bird flew in through the window.
+  // The blue bird had blue eyes.
+  //     `.trim();
 
-    const providers = [
-      'google',
-      'deepl',
-      'papago',
-      'yandex',
-      'reverso',
-      'bing',
-    ];
+  //     const providers = [
+  //       'google',
+  //       'deepl',
+  //       'papago',
+  //       'yandex',
+  //       'reverso',
+  //       'bing',
+  //     ];
 
-    const t = new Translator();
-    for (const p of providers) {
-      try {
-        t.provider = p;
-        console.time(p);
-        const res = await t.text('en', 'ja', text);
-        console.timeEnd(p);
-        console.log(`${p}: ${res}`);
-      } catch (err) {
-        console.log(`${p}: ${err.message}`);
-      }
-    }
-    await t.close();
-  });
+  //     const t = new Translator();
+  //     for (const p of providers) {
+  //       try {
+  //         t.provider = p;
+  //         console.time(p);
+  //         const res = await t.text('en', 'ja', text);
+  //         console.timeEnd(p);
+  //         console.log(`${p}: ${res}`);
+  //       } catch (err) {
+  //         console.log(`${p}: ${err.message}`);
+  //       }
+  //     }
+  //     await t.close();
+  //   });
 
   //   test('auto', async () => {
   //     const text = `
@@ -76,4 +76,25 @@ The blue bird had blue eyes.
 
   //   await t.close();
   // });
+
+  test('splitLine', async () => {
+    const text = fs.readFileSync('test/mobydick.txt', 'utf8');
+    const lines = text.split(/\r\n|\r|\n/);
+    const t = new Translator('papago');
+
+    console.time('line');
+    const res = await t.line(
+      'en',
+      'ko',
+      lines,
+      (newValue, oldValue, index, array) => {
+        console.log(index + 1, '/', array.length);
+      }
+    );
+    console.timeEnd('line');
+
+    fs.writeFileSync('test/mobydick.ko.txt', res.join('\n'), 'utf8');
+
+    await t.close();
+  });
 });

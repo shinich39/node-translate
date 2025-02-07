@@ -13378,13 +13378,18 @@ var Translator = class {
     this.cacheDir = cacheDir;
   }
   async open() {
-    this.isOpened = true;
-    this.browser = await import_puppeteer_extra.default.launch({
-      // headless: false,
-      // args: ["--no-sandbox"],
-      userDataDir: this.cacheDir
-      // executablePath: "google-chrome-stable",
-    });
+    if (!this.isOpened) {
+      this.isOpened = true;
+      this.browser = await import_puppeteer_extra.default.launch({
+        // headless: false,
+        // args: ["--no-sandbox"],
+        userDataDir: this.cacheDir
+        // executablePath: "google-chrome-stable",
+      });
+    }
+    while (!this.browser) {
+      await _e(128);
+    }
   }
   async close() {
     if (this.isOpened) {
@@ -13398,11 +13403,9 @@ var Translator = class {
     }
   }
   async text(sourceLanguage, targetLanguage, text) {
-    if (!this.isOpened) {
-      await this.open();
-    }
-    while (!this.browser) {
-      await _e(128);
+    await this.open();
+    if (!this.browser) {
+      throw new Error("Browser not found");
     }
     const provider = providers.find((item) => item.name === this.provider);
     if (!provider) {
@@ -13442,6 +13445,10 @@ var Translator = class {
     }
   }
   async line(sourceLanguage, targetLanguage, text, callback, size = 512) {
+    await this.open();
+    if (!this.browser) {
+      throw new Error("Browser not found");
+    }
     const srcLines = typeof text === "string" ? splitText(text) : text;
     const dstLines = [];
     const queue = createQueue(srcLines, size);
