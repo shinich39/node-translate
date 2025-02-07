@@ -1,61 +1,9 @@
 'use strict';
 
 import { parseTemplate, wait } from 'utils-js';
-import { getLangCode } from './language';
+import { getLangCode, getLangCodeFromText } from '../utils/language';
 import { Page } from 'puppeteer';
 import * as cheerio from 'cheerio';
-
-// function splitText(
-//   text: string,
-//   maxLength: number
-// ): {
-//   originalText: string;
-//   encodedText: string;
-// }[] {
-//   const texts = [];
-//   while (text.length > maxLength) {
-//     const endIndex = text.lastIndexOf('\n', maxLength);
-//     if (endIndex === -1) {
-//       throw new Error('Too large text without whitespace');
-//     }
-
-//     const part = text.substring(0, endIndex + 1);
-//     texts.push({
-//       originalText: part,
-//       encodedText: encode(part),
-//     });
-//     text = text.substring(endIndex + 1);
-//   }
-
-//   if (text.length > 0) {
-//     texts.push({
-//       originalText: text,
-//       encodedText: encode(text),
-//     });
-//   }
-
-//   return texts;
-// }
-
-// function createQueues(
-//   template: string,
-//   text: string,
-//   from: string,
-//   to: string,
-//   maxLength: number = Number.MAX_SAFE_INTEGER
-// ): Queue[] {
-//   return splitText(text, maxLength).map(({ originalText, encodedText }) => {
-//     const url = createUrl(template, encodedText, from, to);
-//     return { url, text: originalText, from, to };
-//   });
-// }
-
-// export interface Queue {
-//   url: string;
-//   text: string;
-//   from: string;
-//   to: string;
-// }
 
 const DELAY = 128;
 const TIMEOUT = 1000 * 10;
@@ -64,8 +12,10 @@ function encode(str: string) {
   return encodeURIComponent(str);
 }
 
-function convertLangCodes(type: string, ...args: string[]) {
-  return args.map((str) => getLangCode(type, str));
+function convertLangCodes(type: string, text: string, ...args: string[]) {
+  return args.map((str) =>
+    str === 'auto' ? getLangCodeFromText(type, text) : getLangCode(type, str)
+  );
 }
 
 function createUrl(template: string, text: string, from: string, to: string) {
@@ -96,8 +46,16 @@ async function getCheerioContent(page: Page, selector: string) {
   return $(selector).find('br').replaceWith('\n').end().text();
 }
 
+export type ProviderNames =
+  | 'google'
+  | 'deepl'
+  | 'papago'
+  | 'yandex'
+  | 'reverso'
+  | 'bing';
+
 export interface Provider {
-  name: string;
+  name: ProviderNames;
   selector: string;
   maxLength: number;
   template: string;
@@ -114,7 +72,7 @@ export const providers: Provider[] = [
     template:
       'https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('iso639-1', from, to);
+      [from, to] = convertLangCodes('iso639-1', text, from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -125,7 +83,7 @@ export const providers: Provider[] = [
     maxLength: 1500,
     template: 'https://www.deepl.com/translator#${from}/${to}/${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('iso639-1', from, to);
+      [from, to] = convertLangCodes('iso639-1', text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -148,7 +106,7 @@ export const providers: Provider[] = [
     maxLength: 3000,
     template: 'https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('iso639-1', from, to);
+      [from, to] = convertLangCodes('iso639-1', text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {
@@ -172,7 +130,7 @@ export const providers: Provider[] = [
       'https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
       throw new Error('Yandex has been disabled due to robot detection');
-      [from, to] = convertLangCodes('iso639-1', from, to);
+      [from, to] = convertLangCodes('iso639-1', text, from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -183,7 +141,7 @@ export const providers: Provider[] = [
     template:
       'https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('iso639-2', from, to);
+      [from, to] = convertLangCodes('iso639-2', text, from, to);
       return createUrl(this.template, text, from, to);
     },
   },
@@ -194,7 +152,7 @@ export const providers: Provider[] = [
     template:
       'https://www.bing.com/translator?from=${from}&to=${to}&text=${text}',
     url: function (text: string, from: string, to: string) {
-      [from, to] = convertLangCodes('iso639-1', from, to);
+      [from, to] = convertLangCodes('iso639-1', text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function (page: Page) {

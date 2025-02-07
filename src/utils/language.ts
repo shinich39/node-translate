@@ -20,7 +20,15 @@ export function getLangCode(type: string, str: string) {
   }
 }
 
-export function getTextLangCode(type: string, str: string) {
+export function getLangFromText(str: string) {
+  const result = franc(str);
+  if (result === 'und') {
+    throw new Error(`${str} is to short.`);
+  }
+  return result;
+}
+
+export function getLangCodeFromText(type: string, str: string) {
   const result = franc(str);
   if (result === 'und') {
     throw new Error(`${str} is to short.`);

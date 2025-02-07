@@ -1,6 +1,7 @@
 import { Page } from 'puppeteer';
+export type ProviderNames = 'google' | 'deepl' | 'papago' | 'yandex' | 'reverso' | 'bing';
 export interface Provider {
-    name: string;
+    name: ProviderNames;
     selector: string;
     maxLength: number;
     template: string;
@@ -8,4 +9,4 @@ export interface Provider {
     prepare?: (page: Page) => Promise<string>;
 }
 export declare const providers: Provider[];
-//# sourceMappingURL=providers.d.ts.map
+//# sourceMappingURL=provider.d.ts.map

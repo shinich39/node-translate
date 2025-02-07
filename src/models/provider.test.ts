@@ -2,7 +2,7 @@
 
 import { describe, test, it } from 'node:test';
 import assert from 'node:assert';
-import { providers } from './providers';
+import { providers } from './provider';
 
 const eq = function (a, b, msg) {
   return typeof a === 'object'

@@ -12750,7 +12750,7 @@ var require_is_url = __commonJS({
   }
 });
 
-// src/core/fetch.ts
+// src/models/translator.ts
 import * as cheerio2 from "cheerio";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
@@ -13137,7 +13137,7 @@ var K = class e {
   }
 };
 
-// src/core/language.ts
+// src/utils/language.ts
 var import_country_language = __toESM(require_country_language(), 1);
 import { franc } from "franc";
 function getLangCode(type, str) {
@@ -13156,16 +13156,25 @@ function getLangCode(type, str) {
     throw new Error(`Language code not found: ${str}`);
   }
 }
+function getLangCodeFromText(type, str) {
+  const result = franc(str);
+  if (result === "und") {
+    throw new Error(`${str} is to short.`);
+  }
+  return getLangCode(type, result);
+}
 
-// src/core/providers.ts
+// src/models/provider.ts
 import * as cheerio from "cheerio";
 var DELAY = 128;
 var TIMEOUT = 1e3 * 10;
 function encode(str) {
   return encodeURIComponent(str);
 }
-function convertLangCodes(type, ...args) {
-  return args.map((str) => getLangCode(type, str));
+function convertLangCodes(type, text, ...args) {
+  return args.map(
+    (str) => str === "auto" ? getLangCodeFromText(type, text) : getLangCode(type, str)
+  );
 }
 function createUrl(template, text, from, to) {
   return ht(template, {
@@ -13197,7 +13206,7 @@ var providers = [
     maxLength: 5e3,
     template: "https://translate.google.com/?sl=${from}&tl=${to}&text=${text}&op=translate",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("iso639-1", from, to);
+      [from, to] = convertLangCodes("iso639-1", text, from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13208,7 +13217,7 @@ var providers = [
     maxLength: 1500,
     template: "https://www.deepl.com/translator#${from}/${to}/${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("iso639-1", from, to);
+      [from, to] = convertLangCodes("iso639-1", text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13231,7 +13240,7 @@ var providers = [
     maxLength: 3e3,
     template: "https://papago.naver.com/?sk=${from}&tk=${to}&st=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("iso639-1", from, to);
+      [from, to] = convertLangCodes("iso639-1", text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13254,7 +13263,7 @@ var providers = [
     template: "https://translate.yandex.com/?source_lang=${from}&target_lang=${to}&text=${text}",
     url: function(text, from, to) {
       throw new Error("Yandex has been disabled due to robot detection");
-      [from, to] = convertLangCodes("iso639-1", from, to);
+      [from, to] = convertLangCodes("iso639-1", text, from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13264,7 +13273,7 @@ var providers = [
     maxLength: 2e3,
     template: "https://www.reverso.net/text-translation#sl=${from}&tl=${to}&text=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("iso639-2", from, to);
+      [from, to] = convertLangCodes("iso639-2", text, from, to);
       return createUrl(this.template, text, from, to);
     }
   },
@@ -13274,7 +13283,7 @@ var providers = [
     maxLength: 1e3,
     template: "https://www.bing.com/translator?from=${from}&to=${to}&text=${text}",
     url: function(text, from, to) {
-      [from, to] = convertLangCodes("iso639-1", from, to);
+      [from, to] = convertLangCodes("iso639-1", text, from, to);
       return createUrl(this.template, text, from, to);
     },
     prepare: async function(page) {
@@ -13292,99 +13301,10 @@ var providers = [
   }
 ];
 
-// src/core/fetch.ts
-puppeteer.use(StealthPlugin());
-var browser = null;
-var cacheDir = ".puppeteer";
-var createdAt = null;
-var timer = null;
-function setTimer(time) {
-  if (timer) {
-    clearTimeout(timer);
-  }
-  timer = setTimeout(destroy, time);
-}
-function setCacheDir(str) {
-  cacheDir = str;
-}
-async function destroy() {
-  if (timer) {
-    clearTimeout(timer);
-  }
-  if (browser) {
-    const b = browser;
-    createdAt = null;
-    browser = null;
-    await b.close();
-  }
-}
-async function translate(provider, sourceLanguage, targetLanguage, text, lifetime = 0) {
-  const p = providers.find((item) => item.name === provider);
-  if (!p) {
-    throw new Error(`Provider not found: ${provider}`);
-  }
-  if (text.length > p.maxLength) {
-    throw new Error(`Too many characters: ${text.length} > ${p.maxLength}`);
-  }
-  const { selector, prepare } = p;
-  const url = p.url.apply(p, [text, sourceLanguage, targetLanguage]);
-  if (!createdAt) {
-    createdAt = Date.now();
-    browser = await puppeteer.launch({
-      // headless: false,
-      // args: ["--no-sandbox"],
-      userDataDir: cacheDir
-      // executablePath: "google-chrome-stable",
-    });
-  } else {
-    while (!browser) {
-      await _e(128);
-    }
-  }
-  if (lifetime) {
-    setTimer(lifetime);
-  }
-  const page = await browser.newPage();
-  try {
-    await page.goto(url, {
-      waitUntil: "load"
-    });
-    let result;
-    if (prepare) {
-      result = await prepare.apply(p, [page]);
-    } else {
-      await page.waitForSelector(selector, {
-        visible: true,
-        timeout: 1e3 * 10
-      });
-      const content = await page.content();
-      const $ = cheerio2.load(content);
-      result = $(selector).find("br").replaceWith("\n").end().text();
-    }
-    await page.close();
-    if (!lifetime) {
-      await destroy();
-    }
-    return result;
-  } catch (err) {
-    await page.close();
-    if (!lifetime) {
-      await destroy();
-    }
-    throw err;
-  }
-}
-
-// src/modules/lineByLine.ts
+// src/models/queue.ts
 var import_is_url = __toESM(require_is_url(), 1);
-function isSpecial(str) {
-  return /^[^\p{L}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(
-    str
-  );
-}
-function isEmpty(str) {
-  return str.trim() === "";
-}
+
+// src/utils/array.ts
 function findLastIndex(arr, callback) {
   for (let i = arr.length - 1; i >= 0; i--) {
     if (callback(arr[i], i, arr)) {
@@ -13393,9 +13313,21 @@ function findLastIndex(arr, callback) {
   }
   return -1;
 }
+
+// src/utils/string.ts
+function isSpecial(str) {
+  return /^[^\p{L}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(
+    str
+  );
+}
+function isEmpty(str) {
+  return str.trim() === "";
+}
 function splitText(str) {
   return str.split(/\r\n|\r|\n/);
 }
+
+// src/models/queue.ts
 function createQueue(lines, size) {
   const queue = [];
   for (let i = 0; i < lines.length; i++) {
@@ -13423,46 +13355,116 @@ function createQueue(lines, size) {
   }
   return queue;
 }
-async function translateLineByLine(provider, sourceLanguage, targetLanguage, text, callback, size = 512) {
-  const srcLines = typeof text === "string" ? splitText(text) : text;
-  const dstLines = [];
-  const queue = createQueue(srcLines, size);
-  let i = 0, j = 0;
-  for (i; i < queue.length; i++) {
-    const { isText, index, value } = queue[i];
-    if (!isText) {
-      dstLines.splice(dstLines.length + index, 0, value);
-    } else {
-      if (callback) {
-        for (j; j < dstLines.length; j++) {
-          callback(dstLines[j], srcLines[j], j, srcLines);
+
+// src/models/translator.ts
+puppeteer.use(StealthPlugin());
+var Translator = class {
+  constructor(options) {
+    this.isOpened = false;
+    this.provider = "google";
+    this.cacheDir = ".puppeteer";
+    Object.assign(this, options);
+  }
+  async open() {
+    this.isOpened = true;
+    this.browser = await puppeteer.launch({
+      // headless: false,
+      // args: ["--no-sandbox"],
+      userDataDir: this.cacheDir
+      // executablePath: "google-chrome-stable",
+    });
+  }
+  async close() {
+    if (this.isOpened) {
+      while (!this.browser) {
+        await _e(128);
+      }
+      const b = this.browser;
+      this.browser = void 0;
+      this.isOpened = false;
+      await b.close();
+    }
+  }
+  async text(sourceLanguage, targetLanguage, text) {
+    if (!this.isOpened) {
+      await this.open();
+    }
+    while (!this.browser) {
+      await _e(128);
+    }
+    const provider = providers.find((item) => item.name === this.provider);
+    if (!provider) {
+      throw new Error(`Provider not found: ${this.provider}`);
+    }
+    const { selector, prepare, maxLength } = provider;
+    if (text.length > maxLength) {
+      throw new Error(`Too many characters: ${text.length} > ${maxLength}`);
+    }
+    const url = provider.url.apply(provider, [
+      text,
+      sourceLanguage,
+      targetLanguage
+    ]);
+    const page = await this.browser.newPage();
+    try {
+      await page.goto(url, {
+        waitUntil: "load"
+      });
+      let result;
+      if (prepare) {
+        result = await prepare.apply(provider, [page]);
+      } else {
+        await page.waitForSelector(selector, {
+          visible: true,
+          timeout: 1e3 * 10
+        });
+        const content = await page.content();
+        const $ = cheerio2.load(content);
+        result = $(selector).find("br").replaceWith("\n").end().text();
+      }
+      await page.close();
+      return result;
+    } catch (err) {
+      await page.close();
+      throw err;
+    }
+  }
+  async line(sourceLanguage, targetLanguage, text, callback, size = 512) {
+    const srcLines = typeof text === "string" ? splitText(text) : text;
+    const dstLines = [];
+    const queue = createQueue(srcLines, size);
+    let i = 0, j = 0;
+    for (i; i < queue.length; i++) {
+      const { isText, index, value } = queue[i];
+      if (!isText) {
+        dstLines.splice(dstLines.length + index, 0, value);
+      } else {
+        if (callback) {
+          for (j; j < dstLines.length; j++) {
+            callback(dstLines[j], srcLines[j], j, srcLines);
+          }
+        }
+        try {
+          const translatedText = await this.text(
+            sourceLanguage,
+            targetLanguage,
+            value
+          );
+          dstLines.push(...splitText(translatedText));
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Unknown error.";
+          dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
         }
       }
-      try {
-        const translatedText = await translate(
-          provider,
-          sourceLanguage,
-          targetLanguage,
-          value,
-          1e3 * 60
-        );
-        dstLines.push(...splitText(translatedText));
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error.";
-        dstLines.push(...splitText(value).map(() => `ERROR=${message}`));
+    }
+    if (callback) {
+      for (j; j < dstLines.length; j++) {
+        callback(dstLines[j], srcLines[j], j, srcLines);
       }
     }
+    return dstLines;
   }
-  if (callback) {
-    for (j; j < dstLines.length; j++) {
-      callback(dstLines[j], srcLines[j], j, srcLines);
-    }
-  }
-  return dstLines.join("\n");
-}
+};
 export {
-  destroy,
-  setCacheDir,
-  translate,
-  translateLineByLine
+  Translator
 };

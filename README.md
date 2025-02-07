@@ -12,12 +12,12 @@ npm install github:shinich39/node-translate
 
 ### Usage
 
-```js
-import { translate } from 'node-translate';
+- Text
 
+```js
 const text = `
-The baby was lying on her back. 
-A blue bird flew in through the window. 
+The baby was lying on her back.
+A blue bird flew in through the window.
 The blue bird had blue eyes.
 `.trim();
 
@@ -25,21 +25,24 @@ const providers = [
   'google',
   'deepl',
   'papago',
-  'yandex', // disabled
+  'yandex',
   'reverso',
-  'bing', // Linebreak not supported
+  'bing',
 ];
 
+const t = new Translator();
 for (const p of providers) {
   try {
+    t.provider = p;
     console.time(p);
-    const res = await translate(p, 'en', 'ja', text);
+    const res = await t.text('en', 'ja', text);
     console.timeEnd(p);
     console.log(`${p}: ${res}`);
   } catch (err) {
     console.log(`${p}: ${err.message}`);
   }
 }
+await t.close();
 
 // google: 1.662s
 // google: 赤ちゃんは仰向けになっていた。
@@ -62,21 +65,27 @@ for (const p of providers) {
 // bing: 赤ちゃんは仰向けに寝ていました。青い鳥が窓から飛び込んできました。その青い鳥は青い目を持っていました。
 ```
 
-```js
-import { translateLineByLine } from 'node-translate';
+- Line
 
+```js
 const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-const res = await translateLineByLine(
-  'papago',
+const t = new Translator();
+t.provider = "papago";
+
+console.time("line");
+const res = await t.line(
   'en',
   'ko',
   text,
-  (newValue, curerentValue, currentIndex, array) => {
-    console.log(currentIndex, '/', array.length - 1);
+  (newValue, oldValue, index, array) => {
+    console.log(index + 1, '/', array.length);
   }
 );
+console.timeEnd("line");
 
-fs.writeFileSync('test/mobydick.ko.txt', res, 'utf8');
+fs.writeFileSync('test/mobydick.ko.txt', res.join("\n"), 'utf8');
+
+await t.close();
 ```
 
 ## Acknowledgements
