@@ -60,7 +60,7 @@ describe('src/index.ts', () => {
 
   test('line', async () => {
     const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const t = new Translator("papago");
+    const t = new Translator('papago');
 
     console.time('line');
     const res = await t.line(

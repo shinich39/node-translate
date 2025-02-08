@@ -11,10 +11,7 @@ export interface Queue {
   length: number;
 }
 
-export function createQueue(
-  lines: string[], 
-  size: number,
-) {
+export function createQueue(lines: string[], size: number) {
   const queue: Queue[] = [];
 
   for (let i = 0; i < lines.length; i++) {

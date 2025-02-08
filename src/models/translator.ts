@@ -116,7 +116,7 @@ export class Translator {
       index: number,
       array: string[]
     ) => void,
-    size: number = 512,
+    size: number = 512
   ) {
     await this.open();
 

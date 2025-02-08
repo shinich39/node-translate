@@ -13334,11 +13334,6 @@ function findLastIndex(arr, callback) {
 }
 
 // src/utils/string.ts
-function isSpecial(str) {
-  return /^[^\p{L}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+$/u.test(
-    str
-  );
-}
 function isEmpty(str) {
   return str.trim() === "";
 }
@@ -13351,7 +13346,7 @@ function createQueue(lines, size) {
   const queue = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (isEmpty(line) || (0, import_is_url.default)(line) || isSpecial(line)) {
+    if (isEmpty(line) || (0, import_is_url.default)(line)) {
       queue.push({
         isText: false,
         index: 0,
