@@ -58,37 +58,15 @@ describe('src/index.ts', () => {
   //     await t.close();
   //   });
 
-  // test('line', async () => {
-  //   const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-  //   const t = new Translator("papago");
-
-  //   console.time('line');
-  //   const res = await t.line(
-  //     'en',
-  //     'ko',
-  //     text,
-  //     (newValue, oldValue, index, array) => {
-  //       console.log(index + 1, '/', array.length);
-  //     }
-  //   );
-  //   console.timeEnd('line');
-
-  //   fs.writeFileSync('test/mobydick.ko.txt', res.join('\n'), 'utf8');
-
-  //   await t.close();
-  // });
-
-  test('splitLine', async () => {
+  test('line', async () => {
     const text = fs.readFileSync('test/mobydick.txt', 'utf8');
-    const t = new Translator('papago');
-    const data = toHalfWidth(text)
-      .replace(/(\r\n|\r|\n)+/g, '\n')
-      .replace(/\n/g, '\n');
+    const t = new Translator("papago");
+
     console.time('line');
     const res = await t.line(
       'en',
       'ko',
-      data,
+      text,
       (newValue, oldValue, index, array) => {
         console.log(index + 1, '/', array.length);
       }

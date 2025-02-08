@@ -17,6 +17,7 @@ export class Translator {
   cacheDir: string;
   isOpened: boolean;
   browser?: Browser;
+
   constructor(
     provider: ProviderNames = 'google',
     cacheDir: string = '.puppeteer'
@@ -115,7 +116,7 @@ export class Translator {
       index: number,
       array: string[]
     ) => void,
-    size: number = 512
+    size: number = 512,
   ) {
     await this.open();
 

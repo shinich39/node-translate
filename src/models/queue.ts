@@ -2,7 +2,7 @@
 
 import isUrl from 'is-url';
 import { findLastIndex } from '../utils/array';
-import { isEmpty, isSpecial } from '../utils/string';
+import { isEmpty } from '../utils/string';
 
 export interface Queue {
   isText: boolean;
@@ -11,12 +11,15 @@ export interface Queue {
   length: number;
 }
 
-export function createQueue(lines: string[], size: number) {
+export function createQueue(
+  lines: string[], 
+  size: number,
+) {
   const queue: Queue[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (isEmpty(line) || isUrl(line) || isSpecial(line)) {
+    if (isEmpty(line) || isUrl(line)) {
       queue.push({
         isText: false,
         index: 0,
