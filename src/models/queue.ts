@@ -11,12 +11,16 @@ export interface Queue {
   length: number;
 }
 
-export function createQueue(lines: string[], size: number) {
+export function createQueue(
+  lines: string[],
+  size: number,
+  skip?: (value: string, index: number) => boolean
+) {
   const queue: Queue[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (isEmpty(line) || isUrl(line)) {
+    if ((skip && skip(line, i)) || isEmpty(line) || isUrl(line)) {
       queue.push({
         isText: false,
         index: 0,

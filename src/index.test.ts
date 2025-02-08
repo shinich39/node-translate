@@ -69,7 +69,9 @@ describe('src/index.ts', () => {
       text,
       (newValue, oldValue, index, array) => {
         console.log(index + 1, '/', array.length);
-      }
+      },
+      512,
+      (value, index) => value.startsWith('LOOMINGS')
     );
     console.timeEnd('line');
 

@@ -13329,11 +13329,11 @@ function splitText(str) {
 }
 
 // src/models/queue.ts
-function createQueue(lines, size) {
+function createQueue(lines, size, skip) {
   const queue = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (isEmpty(line) || (0, import_is_url.default)(line)) {
+    if (skip && skip(line, i) || isEmpty(line) || (0, import_is_url.default)(line)) {
       queue.push({
         isText: false,
         index: 0,
@@ -13437,14 +13437,14 @@ var Translator = class {
       throw err;
     }
   }
-  async line(sourceLanguage, targetLanguage, text, callback, size = 512) {
+  async line(sourceLanguage, targetLanguage, text, callback, size, skip) {
     await this.open();
     if (!this.browser) {
       throw new Error("Browser not found");
     }
     const srcLines = typeof text === "string" ? splitText(text) : text;
     const dstLines = [];
-    const queue = createQueue(srcLines, size);
+    const queue = createQueue(srcLines, size || 512, skip);
     let i = 0, j = 0;
     for (i; i < queue.length; i++) {
       const { isText, index, values } = queue[i];

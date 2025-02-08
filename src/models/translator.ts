@@ -116,7 +116,8 @@ export class Translator {
       index: number,
       array: string[]
     ) => void,
-    size: number = 512
+    size?: number,
+    skip?: (value: string, index: number) => boolean
   ) {
     await this.open();
 
@@ -126,7 +127,7 @@ export class Translator {
 
     const srcLines = typeof text === 'string' ? splitText(text) : text;
     const dstLines: string[] = [];
-    const queue = createQueue(srcLines, size);
+    const queue = createQueue(srcLines, size || 512, skip);
     let i = 0,
       j = 0;
     for (i; i < queue.length; i++) {
