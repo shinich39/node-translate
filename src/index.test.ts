@@ -70,8 +70,11 @@ describe('src/index.ts', () => {
       (newValue, oldValue, index, array) => {
         console.log(index + 1, '/', array.length);
       },
-      512,
-      (value, index) => value.startsWith('LOOMINGS')
+      {
+        size: 512,
+        delay: 512,
+        skip: (value, index) => value.startsWith('LOOMINGS'),
+      }
     );
     console.timeEnd('line');
 

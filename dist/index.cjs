@@ -13447,14 +13447,17 @@ var Translator = class {
       throw err;
     }
   }
-  async line(sourceLanguage, targetLanguage, text, callback, size, skip, delay) {
+  async line(sourceLanguage, targetLanguage, text, callback, options) {
+    if (!options) {
+      options = {};
+    }
     await this.open();
     if (!this.browser) {
       throw new Error("Browser not found");
     }
     const srcLines = typeof text === "string" ? splitText(text) : text;
     const dstLines = [];
-    const queue = createQueue(srcLines, size || 512, skip);
+    const queue = createQueue(srcLines, options.size || 512, options.skip);
     let i = 0, j = 0;
     for (i; i < queue.length; i++) {
       const { isText, index, values } = queue[i];
@@ -13491,7 +13494,11 @@ var Translator = class {
             }
           }
         }
-        await _e(delay || 0);
+        if (options.delay) {
+          await _e(
+            typeof options.delay === "function" ? options.delay() : options.delay
+          );
+        }
       }
     }
     if (callback) {

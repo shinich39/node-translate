@@ -116,10 +116,15 @@ export class Translator {
       index: number,
       array: string[]
     ) => void,
-    size?: number,
-    skip?: (value: string, index: number) => boolean,
-    delay?: number
+    options?: {
+      size?: number;
+      skip?: (value: string, index: number) => boolean;
+      delay?: number | ((...args: any[]) => number);
+    }
   ) {
+    if (!options) {
+      options = {};
+    }
     await this.open();
 
     if (!this.browser) {
@@ -128,7 +133,7 @@ export class Translator {
 
     const srcLines = typeof text === 'string' ? splitText(text) : text;
     const dstLines: string[] = [];
-    const queue = createQueue(srcLines, size || 512, skip);
+    const queue = createQueue(srcLines, options.size || 512, options.skip);
     let i = 0,
       j = 0;
     for (i; i < queue.length; i++) {
@@ -172,7 +177,13 @@ export class Translator {
           }
         }
 
-        await wait(delay || 0);
+        if (options.delay) {
+          await wait(
+            typeof options.delay === 'function'
+              ? options.delay()
+              : options.delay
+          );
+        }
       }
     }
 
