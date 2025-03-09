@@ -1,8 +1,7 @@
 'use strict';
 
 import isUrl from 'is-url';
-import { findLastIndex } from '../utils/array';
-import { isEmpty } from '../utils/string';
+import { findLastIndex, isEmpty } from '../common/utils';
 
 export interface Queue {
   isText: boolean;

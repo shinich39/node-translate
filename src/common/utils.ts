@@ -3,6 +3,42 @@
 import CountryLanguage from '@ladjs/country-language';
 import { franc } from 'franc';
 
+export function isEnglish(str: string) {
+  return /^[a-zA-Z]+$/.test(str);
+}
+
+export function isNumber(str: string) {
+  return /^[0-9]+$/.test(str);
+}
+
+export function isEmpty(str: string) {
+  return str.trim() === '';
+}
+
+export function isError(str: string) {
+  return /^ERROR=/.test(str);
+}
+
+export function isLineBreak(str: string) {
+  return /^(?:\r\n|\r|\n)+$/.test(str);
+}
+
+export function splitText(str: string) {
+  return str.split(/\r\n|\r|\n/);
+}
+
+export function findLastIndex<T>(
+  arr: T[],
+  callback: (value: T, index: number, array: T[]) => boolean
+): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (callback(arr[i], i, arr)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 export function getLangCode(type: string, str: string) {
   const lang = CountryLanguage.getLanguage(str);
   if (type === '1' || type === 'iso639-1') {

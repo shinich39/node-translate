@@ -6,7 +6,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { createQueue } from './queue';
 import { toHalfWidth } from 'utils-js';
-import { splitText } from '../utils/string';
+import { splitText } from '../common/utils';
 const eq = function (a, b, msg) {
   return typeof a === 'object'
     ? assert.deepStrictEqual(a, b, msg)

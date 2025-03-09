@@ -5,9 +5,9 @@ import { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { ProviderNames, providers } from './provider';
-import { wait } from 'utils-js';
+import { generateRandomNumber, wait } from 'utils-js';
 import { createQueue } from './queue';
-import { splitText } from '../utils/string';
+import { splitText } from '../common/utils';
 
 // add stealth plugin and use defaults (all evasion techniques)
 puppeteer.use(StealthPlugin());
@@ -117,7 +117,8 @@ export class Translator {
       array: string[]
     ) => void,
     size?: number,
-    skip?: (value: string, index: number) => boolean
+    skip?: (value: string, index: number) => boolean,
+    delay?: number
   ) {
     await this.open();
 
@@ -143,23 +144,35 @@ export class Translator {
           }
         }
 
-        try {
-          const translatedText = await this.text(
-            sourceLanguage,
-            targetLanguage,
-            values.join('\n')
-          );
+        let retry = 3;
+        while (retry > 0) {
+          retry--;
+          try {
+            const translatedText = await this.text(
+              sourceLanguage,
+              targetLanguage,
+              values.join('\n')
+            );
 
-          const translatedLines = splitText(translatedText);
-          for (let k = 0; k < values.length; k++) {
-            dstLines.push(translatedLines[k] || values[k]);
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'UnknownError';
-          for (let k = 0; k < values.length; k++) {
-            dstLines.push(`ERROR=${message}`);
+            const translatedLines = splitText(translatedText);
+            for (let k = 0; k < values.length; k++) {
+              dstLines.push(translatedLines[k] || values[k]);
+            }
+            break;
+          } catch (err) {
+            if (retry > 0) {
+              await wait(1024 * generateRandomNumber(1, 3));
+            } else {
+              const message =
+                err instanceof Error ? err.message : 'UnknownError';
+              for (let k = 0; k < values.length; k++) {
+                dstLines.push(`ERROR=${message}`);
+              }
+            }
           }
         }
+
+        await wait(delay || 0);
       }
     }
 

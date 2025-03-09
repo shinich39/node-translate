@@ -9,6 +9,6 @@ export declare class Translator {
     open(): Promise<void>;
     close(): Promise<void>;
     text(sourceLanguage: string, targetLanguage: string, text: string): Promise<string>;
-    line(sourceLanguage: string, targetLanguage: string, text: string | string[], callback?: (newValue: string, oldValue: string, index: number, array: string[]) => void, size?: number, skip?: (value: string, index: number) => boolean): Promise<string[]>;
+    line(sourceLanguage: string, targetLanguage: string, text: string | string[], callback?: (newValue: string, oldValue: string, index: number, array: string[]) => void, size?: number, skip?: (value: string, index: number) => boolean, delay?: number): Promise<string[]>;
 }
 //# sourceMappingURL=translator.d.ts.map

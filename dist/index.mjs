@@ -12765,6 +12765,9 @@ function a(e2) {
 function g(e2) {
   return Array && Array.isArray ? Array.isArray(e2) : Object.prototype.toString.call(e2) === "[object Array]";
 }
+function z(e2, t) {
+  return Math.random() * (t - e2) + e2;
+}
 function O(e2, t, n) {
   return e2 -= t, n -= t, e2 < 0 && (e2 = e2 % n + n), e2 >= n && (e2 = e2 % n), e2 + t;
 }
@@ -13137,9 +13140,23 @@ var K = class e {
   }
 };
 
-// src/utils/language.ts
+// src/common/utils.ts
 var import_country_language = __toESM(require_country_language(), 1);
 import { franc } from "franc";
+function isEmpty(str) {
+  return str.trim() === "";
+}
+function splitText(str) {
+  return str.split(/\r\n|\r|\n/);
+}
+function findLastIndex(arr, callback) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (callback(arr[i], i, arr)) {
+      return i;
+    }
+  }
+  return -1;
+}
 function getLangCode(type, str) {
   const lang = import_country_language.default.getLanguage(str);
   if (type === "1" || type === "iso639-1") {
@@ -13309,26 +13326,6 @@ var providers = [
 
 // src/models/queue.ts
 var import_is_url = __toESM(require_is_url(), 1);
-
-// src/utils/array.ts
-function findLastIndex(arr, callback) {
-  for (let i = arr.length - 1; i >= 0; i--) {
-    if (callback(arr[i], i, arr)) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-// src/utils/string.ts
-function isEmpty(str) {
-  return str.trim() === "";
-}
-function splitText(str) {
-  return str.split(/\r\n|\r|\n/);
-}
-
-// src/models/queue.ts
 function createQueue(lines, size, skip) {
   const queue = [];
   for (let i = 0; i < lines.length; i++) {
@@ -13437,7 +13434,7 @@ var Translator = class {
       throw err;
     }
   }
-  async line(sourceLanguage, targetLanguage, text, callback, size, skip) {
+  async line(sourceLanguage, targetLanguage, text, callback, size, skip, delay) {
     await this.open();
     if (!this.browser) {
       throw new Error("Browser not found");
@@ -13456,22 +13453,32 @@ var Translator = class {
             callback(dstLines[j], srcLines[j], j, srcLines);
           }
         }
-        try {
-          const translatedText = await this.text(
-            sourceLanguage,
-            targetLanguage,
-            values.join("\n")
-          );
-          const translatedLines = splitText(translatedText);
-          for (let k = 0; k < values.length; k++) {
-            dstLines.push(translatedLines[k] || values[k]);
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "UnknownError";
-          for (let k = 0; k < values.length; k++) {
-            dstLines.push(`ERROR=${message}`);
+        let retry = 3;
+        while (retry > 0) {
+          retry--;
+          try {
+            const translatedText = await this.text(
+              sourceLanguage,
+              targetLanguage,
+              values.join("\n")
+            );
+            const translatedLines = splitText(translatedText);
+            for (let k = 0; k < values.length; k++) {
+              dstLines.push(translatedLines[k] || values[k]);
+            }
+            break;
+          } catch (err) {
+            if (retry > 0) {
+              await _e(1024 * z(1, 3));
+            } else {
+              const message = err instanceof Error ? err.message : "UnknownError";
+              for (let k = 0; k < values.length; k++) {
+                dstLines.push(`ERROR=${message}`);
+              }
+            }
           }
         }
+        await _e(delay || 0);
       }
     }
     if (callback) {

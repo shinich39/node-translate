@@ -1,7 +1,7 @@
 'use strict';
 
 import { parseTemplate, wait } from 'utils-js';
-import { getLangCode, getLangCodeFromText } from '../utils/language';
+import { getLangCode, getLangCodeFromText } from '../common/utils';
 import { Page } from 'puppeteer';
 import * as cheerio from 'cheerio';
 
